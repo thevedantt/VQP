@@ -1,0 +1,18 @@
+{
+    "char_count": 34218,
+    "word_count": 6686,
+    "line_count": 1033,
+    "english_percentage": 35.48,
+    "hindi_percentage": 0.0,
+    "corrupted_char_percentage": 0.0,
+    "special_char_percentage": 29.86,
+    "question_pattern_count": 436,
+    "readability_score": 55,
+    "reliability_score": 40,
+    "status": "Poor",
+    "issues": [
+        "Excessive special characters",
+        "Repeated headers/footers detected: 1 unique patterns"
+    ],
+    "file_name": "2384-2_55-2-2_Physics.txt"
+}

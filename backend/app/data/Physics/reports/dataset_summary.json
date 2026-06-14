@@ -1,0 +1,291 @@
+{
+    "total_files": 16,
+    "overall_quality_score": 71,
+    "status_counts": {
+        "Excellent": 0,
+        "Good": 0,
+        "Needs Cleaning": 9,
+        "Poor": 7
+    },
+    "files": [
+        {
+            "char_count": 38052,
+            "word_count": 7269,
+            "line_count": 1121,
+            "english_percentage": 35.73,
+            "hindi_percentage": 0.0,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 31.07,
+            "question_pattern_count": 423,
+            "readability_score": 54,
+            "reliability_score": 37,
+            "status": "Poor",
+            "issues": [
+                "Excessive special characters",
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "2383-1_55-1-1_Physics.txt"
+        },
+        {
+            "char_count": 37986,
+            "word_count": 7268,
+            "line_count": 1117,
+            "english_percentage": 35.62,
+            "hindi_percentage": 0.0,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 31.13,
+            "question_pattern_count": 423,
+            "readability_score": 54,
+            "reliability_score": 37,
+            "status": "Poor",
+            "issues": [
+                "Excessive special characters",
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "2383-2_55-1-2_Physics.txt"
+        },
+        {
+            "char_count": 38478,
+            "word_count": 7394,
+            "line_count": 1138,
+            "english_percentage": 35.4,
+            "hindi_percentage": 0.0,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 30.73,
+            "question_pattern_count": 440,
+            "readability_score": 55,
+            "reliability_score": 38,
+            "status": "Poor",
+            "issues": [
+                "Excessive special characters",
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "2383-3_55-1-3_Physics.txt"
+        },
+        {
+            "char_count": 33683,
+            "word_count": 6521,
+            "line_count": 1022,
+            "english_percentage": 35.83,
+            "hindi_percentage": 0.0,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 30.18,
+            "question_pattern_count": 440,
+            "readability_score": 54,
+            "reliability_score": 39,
+            "status": "Poor",
+            "issues": [
+                "Excessive special characters",
+                "Repeated headers/footers detected: 1 unique patterns"
+            ],
+            "file_name": "2384-1_55-2-1_Physics.txt"
+        },
+        {
+            "char_count": 34218,
+            "word_count": 6686,
+            "line_count": 1033,
+            "english_percentage": 35.48,
+            "hindi_percentage": 0.0,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 29.86,
+            "question_pattern_count": 436,
+            "readability_score": 55,
+            "reliability_score": 40,
+            "status": "Poor",
+            "issues": [
+                "Excessive special characters",
+                "Repeated headers/footers detected: 1 unique patterns"
+            ],
+            "file_name": "2384-2_55-2-2_Physics.txt"
+        },
+        {
+            "char_count": 34065,
+            "word_count": 6650,
+            "line_count": 1027,
+            "english_percentage": 35.6,
+            "hindi_percentage": 0.0,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 30.23,
+            "question_pattern_count": 438,
+            "readability_score": 55,
+            "reliability_score": 39,
+            "status": "Poor",
+            "issues": [
+                "Excessive special characters",
+                "Repeated headers/footers detected: 1 unique patterns"
+            ],
+            "file_name": "2384-3_55-2-3_Physics.txt"
+        },
+        {
+            "char_count": 30737,
+            "word_count": 5931,
+            "line_count": 943,
+            "english_percentage": 35.59,
+            "hindi_percentage": 0.0,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 30.05,
+            "question_pattern_count": 453,
+            "readability_score": 55,
+            "reliability_score": 39,
+            "status": "Poor",
+            "issues": [
+                "Excessive special characters",
+                "Repeated headers/footers detected: 1 unique patterns"
+            ],
+            "file_name": "55(B)_Physics (Theory).txt"
+        },
+        {
+            "char_count": 36830,
+            "word_count": 7013,
+            "line_count": 1468,
+            "english_percentage": 32.59,
+            "hindi_percentage": 29.52,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 1.46,
+            "question_pattern_count": 458,
+            "readability_score": 54,
+            "reliability_score": 97,
+            "status": "Needs Cleaning",
+            "issues": [
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "55-3-1.txt"
+        },
+        {
+            "char_count": 37666,
+            "word_count": 7197,
+            "line_count": 1485,
+            "english_percentage": 32.51,
+            "hindi_percentage": 30.05,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 1.46,
+            "question_pattern_count": 452,
+            "readability_score": 54,
+            "reliability_score": 97,
+            "status": "Needs Cleaning",
+            "issues": [
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "55-3-2.txt"
+        },
+        {
+            "char_count": 38244,
+            "word_count": 7250,
+            "line_count": 1512,
+            "english_percentage": 32.52,
+            "hindi_percentage": 29.68,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 1.58,
+            "question_pattern_count": 454,
+            "readability_score": 54,
+            "reliability_score": 96,
+            "status": "Needs Cleaning",
+            "issues": [
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "55-3-3.txt"
+        },
+        {
+            "char_count": 39074,
+            "word_count": 7188,
+            "line_count": 1402,
+            "english_percentage": 32.71,
+            "hindi_percentage": 30.74,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 1.13,
+            "question_pattern_count": 455,
+            "readability_score": 53,
+            "reliability_score": 97,
+            "status": "Needs Cleaning",
+            "issues": [
+                "Repeated headers/footers detected: 3 unique patterns"
+            ],
+            "file_name": "55-4-1.txt"
+        },
+        {
+            "char_count": 37997,
+            "word_count": 6893,
+            "line_count": 1333,
+            "english_percentage": 32.61,
+            "hindi_percentage": 31.02,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 1.06,
+            "question_pattern_count": 456,
+            "readability_score": 53,
+            "reliability_score": 97,
+            "status": "Needs Cleaning",
+            "issues": [
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "55-4-2.txt"
+        },
+        {
+            "char_count": 38946,
+            "word_count": 7098,
+            "line_count": 1341,
+            "english_percentage": 32.57,
+            "hindi_percentage": 31.34,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 1.11,
+            "question_pattern_count": 457,
+            "readability_score": 53,
+            "reliability_score": 97,
+            "status": "Needs Cleaning",
+            "issues": [
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "55-4-3.txt"
+        },
+        {
+            "char_count": 38682,
+            "word_count": 7108,
+            "line_count": 1555,
+            "english_percentage": 31.95,
+            "hindi_percentage": 30.28,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 1.7,
+            "question_pattern_count": 445,
+            "readability_score": 53,
+            "reliability_score": 96,
+            "status": "Needs Cleaning",
+            "issues": [
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "55-5-1.txt"
+        },
+        {
+            "char_count": 38396,
+            "word_count": 7040,
+            "line_count": 1602,
+            "english_percentage": 31.47,
+            "hindi_percentage": 30.05,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 1.89,
+            "question_pattern_count": 438,
+            "readability_score": 53,
+            "reliability_score": 96,
+            "status": "Needs Cleaning",
+            "issues": [
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "55-5-2.txt"
+        },
+        {
+            "char_count": 38320,
+            "word_count": 7005,
+            "line_count": 1522,
+            "english_percentage": 31.32,
+            "hindi_percentage": 30.18,
+            "corrupted_char_percentage": 0.0,
+            "special_char_percentage": 1.87,
+            "question_pattern_count": 467,
+            "readability_score": 53,
+            "reliability_score": 96,
+            "status": "Needs Cleaning",
+            "issues": [
+                "Repeated headers/footers detected: 2 unique patterns"
+            ],
+            "file_name": "55-5-3.txt"
+        }
+    ]
+}

@@ -1,0 +1,165 @@
+# ==================================
+
+# ENVIRONMENT VARIABLES
+
+# ==================================
+
+.env
+.env.*
+!.env.example
+
+# ==================================
+
+# PYTHON
+
+# ==================================
+
+**/**pycache**/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+
+# Virtual Environments
+
+backend/myenv/
+datapipeline/myenv2/
+venv/
+.venv/
+env/
+
+# ==================================
+
+# NODE / NEXTJS
+
+# ==================================
+
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==================================
+
+# IDE
+
+# ==================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==================================
+
+# LOGS
+
+# ==================================
+
+logs/
+*.log
+
+# ==================================
+
+# RAW DATASETS
+
+# ==================================
+
+**/*.pdf
+**/*.txt
+
+# ==================================
+
+# DATAPIPELINE GENERATED FILES
+
+# ==================================
+
+datapipeline/data/extracted_text/
+datapipeline/data/cleaned_text/
+datapipeline/data/reports/
+datapipeline/data/questions/
+datapipeline/data/embeddings/
+
+# ==================================
+
+# GENERATED JSON FILES
+
+# ==================================
+
+backend/app/data/question_bank/*.json
+datapipeline/data/**/*.json
+
+# Keep final curated dataset
+
+!backend/app/data/question_bank/final_dataset.json
+
+# ==================================
+
+# EMBEDDINGS & VECTOR DATABASES
+
+# ==================================
+
+backend/app/data/embeddings/
+
+vector_db/
+chroma_db/
+faiss_index/
+pgvector_cache/
+
+# ==================================
+
+# GENERATED OUTPUTS
+
+# ==================================
+
+generated_diagrams/
+generated_papers/
+
+# ==================================
+
+# DATABASES
+
+# ==================================
+
+*.db
+*.sqlite
+*.sqlite3
+
+# ==================================
+
+# CACHE & TEMP FILES
+
+# ==================================
+
+.cache/
+tmp/
+temp/
+*.tmp
+*.bak
+
+# ==================================
+
+# JUPYTER
+
+# ==================================
+
+.ipynb_checkpoints/
+
+# ==================================
+
+# OS FILES
+
+# ==================================
+
+.DS_Store
+Thumbs.db
+desktop.ini

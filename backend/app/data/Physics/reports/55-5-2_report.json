@@ -1,0 +1,17 @@
+{
+    "char_count": 38396,
+    "word_count": 7040,
+    "line_count": 1602,
+    "english_percentage": 31.47,
+    "hindi_percentage": 30.05,
+    "corrupted_char_percentage": 0.0,
+    "special_char_percentage": 1.89,
+    "question_pattern_count": 438,
+    "readability_score": 53,
+    "reliability_score": 96,
+    "status": "Needs Cleaning",
+    "issues": [
+        "Repeated headers/footers detected: 2 unique patterns"
+    ],
+    "file_name": "55-5-2.txt"
+}
