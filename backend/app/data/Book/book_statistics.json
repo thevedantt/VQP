@@ -1,0 +1,15 @@
+{
+    "total_chapters": 8,
+    "total_words": 118705,
+    "total_pages_processed": 291,
+    "chapter_word_distribution": {
+        "Electric Charges and Fields": 22045,
+        "Electrostatic Potential and Capacitance": 17694,
+        "Current Electricity": 15299,
+        "Moving Charges and Magnetism": 17771,
+        "Magnetism and Matter": 12900,
+        "Electromagnetic Induction": 11050,
+        "Alternating Current": 13644,
+        "Electromagnetic Waves": 8302
+    }
+}

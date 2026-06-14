@@ -1,33 +1,26 @@
+# Web framework
 fastapi
 uvicorn[standard]
 
-sqlalchemy
-psycopg2-binary
-pgvector
-
+# Data validation & settings
 pydantic
+pydantic-settings
 python-dotenv
 
-langchain
-langchain-community
-langchain-google-genai
+# Gemini LLM
+google-genai
 
-google-generativeai
-
+# PDF processing (data pipeline scripts)
 pypdf
 pymupdf
 
-sentence-transformers
-
-alembic
-
-python-multipart
-
-httpx
-
+# Diagram rendering utilities (reserved for future diagram rendering)
 matplotlib
 graphviz
 
+# Templating (reserved for future PDF/report export)
 jinja2
 
+# Testing
 pytest
+httpx
