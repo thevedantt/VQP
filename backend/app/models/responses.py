@@ -22,6 +22,7 @@ class QuestionItem(BaseModel):
     requires_diagram: bool = False
     diagram_type: DiagramType = "none"
     diagram_id: str | None = None
+    question_number: int = 0
 
 
 class DiagramSpec(BaseModel):
@@ -46,6 +47,29 @@ class DiagramCoverage(BaseModel):
     magnetic_field: int = 0
 
 
+class PaperSection(BaseModel):
+    """A CBSE-style section (A-E) of a generated paper, with its own questions."""
+
+    name: str
+    title: str
+    instructions: str
+    marks_per_question: int
+    question_count: int
+    total_marks: int
+    questions: list[QuestionItem]
+
+
+class QualityEvaluation(BaseModel):
+    """Automated quality scoring for a generated paper. All fields range 0-100."""
+
+    overall_score: float = 0.0
+    cbse_compliance: float = 0.0
+    diagram_coverage: float = 0.0
+    chapter_coverage: float = 0.0
+    difficulty_balance: float = 0.0
+    question_diversity: float = 0.0
+
+
 class GeneratedPaperResponse(BaseModel):
     """Output payload for POST /api/generate-paper."""
 
@@ -63,6 +87,8 @@ class GeneratedPaperResponse(BaseModel):
     generated_questions: list[QuestionItem]
     diagrams: list[DiagramSpec]
     diagram_coverage: DiagramCoverage
+    sections: list[PaperSection] = Field(default_factory=list)
+    quality_evaluation: QualityEvaluation = Field(default_factory=QualityEvaluation)
 
 
 class DetectDiagramResponse(BaseModel):

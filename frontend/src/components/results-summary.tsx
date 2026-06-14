@@ -59,6 +59,7 @@ const DIAGRAM_TYPE_LABELS: Record<string, string> = {
 
 export function ResultsSummary({ paper }: ResultsSummaryProps) {
   const coverage = paper.diagram_coverage;
+  const evaluation = paper.quality_evaluation;
   const diagramTypeCounts = coverage
     ? Object.fromEntries(
         Object.entries(DIAGRAM_TYPE_LABELS)
@@ -116,6 +117,41 @@ export function ResultsSummary({ paper }: ResultsSummaryProps) {
                 />
               </div>
               <DistributionList title="By Diagram Type" data={diagramTypeCounts} />
+            </div>
+          </>
+        )}
+
+        {paper.sections.length > 0 && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">CBSE Section Structure</h3>
+              <div className="flex flex-wrap gap-2">
+                {paper.sections.map((section) => (
+                  <Badge key={section.name} variant="outline">
+                    Section {section.name} ({section.title}): {section.question_count}{" "}
+                    {section.question_count === 1 ? "question" : "questions"},{" "}
+                    {section.total_marks} marks
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {evaluation && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">Quality Evaluation</h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <Stat label="Overall Score" value={`${evaluation.overall_score}%`} />
+                <Stat label="CBSE Compliance" value={`${evaluation.cbse_compliance}%`} />
+                <Stat label="Diagram Coverage" value={`${evaluation.diagram_coverage}%`} />
+                <Stat label="Chapter Coverage" value={`${evaluation.chapter_coverage}%`} />
+                <Stat label="Difficulty Balance" value={`${evaluation.difficulty_balance}%`} />
+                <Stat label="Question Diversity" value={`${evaluation.question_diversity}%`} />
+              </div>
             </div>
           </>
         )}

@@ -9,9 +9,12 @@ from functools import lru_cache
 
 from app.core.config import get_settings
 from app.services.book_service import BookService
+from app.services.concept_extraction_service import ConceptExtractionService
 from app.services.diagram_service import DiagramService
 from app.services.gemini_service import GeminiService
+from app.services.openrouter_service import OpenRouterService
 from app.services.orchestrator_service import PaperGenerationOrchestrator
+from app.services.paper_evaluator import PaperEvaluator
 from app.services.paper_service import PaperService
 from app.services.question_service import QuestionService
 from app.services.weightage_service import WeightageService
@@ -48,15 +51,50 @@ def get_gemini_service() -> GeminiService:
 
 
 @lru_cache
+def get_openrouter_service() -> OpenRouterService:
+    settings = get_settings()
+    return OpenRouterService(
+        api_key=settings.openrouter_api_key,
+        model_name=settings.openrouter_model,
+        base_url=settings.openrouter_base_url,
+        max_retries=settings.openrouter_max_retries,
+        retry_backoff_seconds=settings.openrouter_retry_backoff_seconds,
+        request_timeout_seconds=settings.openrouter_request_timeout_seconds,
+    )
+
+
+@lru_cache
+def get_concept_extraction_service() -> ConceptExtractionService:
+    return ConceptExtractionService(get_openrouter_service(), get_gemini_service(), get_diagram_service())
+
+
+@lru_cache
+def get_paper_evaluator() -> PaperEvaluator:
+    return PaperEvaluator()
+
+
+@lru_cache
 def get_weightage_service() -> WeightageService:
     return WeightageService(get_question_service(), get_book_service())
 
 
 @lru_cache
 def get_paper_service() -> PaperService:
-    return PaperService(get_question_service(), get_book_service(), get_gemini_service(), get_diagram_service())
+    return PaperService(
+        get_question_service(),
+        get_book_service(),
+        get_gemini_service(),
+        get_openrouter_service(),
+        get_diagram_service(),
+    )
 
 
 @lru_cache
 def get_orchestrator() -> PaperGenerationOrchestrator:
-    return PaperGenerationOrchestrator(get_weightage_service(), get_paper_service(), get_diagram_service())
+    return PaperGenerationOrchestrator(
+        get_weightage_service(),
+        get_paper_service(),
+        get_diagram_service(),
+        get_concept_extraction_service(),
+        get_paper_evaluator(),
+    )

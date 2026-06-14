@@ -43,6 +43,26 @@ export interface QuestionItem {
   requires_diagram: boolean;
   diagram_type: DiagramType;
   diagram_id: string | null;
+  question_number: number;
+}
+
+export interface PaperSection {
+  name: string;
+  title: string;
+  instructions: string;
+  marks_per_question: number;
+  question_count: number;
+  total_marks: number;
+  questions: QuestionItem[];
+}
+
+export interface QualityEvaluation {
+  overall_score: number;
+  cbse_compliance: number;
+  diagram_coverage: number;
+  chapter_coverage: number;
+  difficulty_balance: number;
+  question_diversity: number;
 }
 
 export interface DiagramSpec {
@@ -78,6 +98,8 @@ export interface GeneratedPaperResponse {
   generated_questions: QuestionItem[];
   diagrams: DiagramSpec[];
   diagram_coverage: DiagramCoverage;
+  sections: PaperSection[];
+  quality_evaluation: QualityEvaluation;
 }
 
 /** Error envelope returned by the backend's global exception handlers. */

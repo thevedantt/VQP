@@ -36,13 +36,14 @@ function QuestionCard({
   diagram?: DiagramSpec;
 }) {
   const options = Object.entries(question.options);
+  const displayNumber = question.question_number || index;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
           <CardTitle className="text-sm text-muted-foreground">
-            Q{index}
+            Q{displayNumber}
           </CardTitle>
           <Badge variant={question.source === "pyq" ? "secondary" : "default"}>
             {question.source === "pyq" ? "PYQ" : "AI"}
@@ -111,6 +112,40 @@ export function QuestionList({ paper }: QuestionListProps) {
           No questions were generated for this configuration.
         </CardContent>
       </Card>
+    );
+  }
+
+  if (paper.sections.length > 0) {
+    return (
+      <div className="flex flex-col gap-6">
+        {paper.sections.map((section) => (
+          <div key={section.name} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-base font-semibold">
+                Section {section.name}: {section.title}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {section.instructions}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {section.question_count}{" "}
+                {section.question_count === 1 ? "question" : "questions"} ·{" "}
+                {section.marks_per_question}{" "}
+                {section.marks_per_question === 1 ? "mark" : "marks"} each ·{" "}
+                {section.total_marks} marks total
+              </p>
+            </div>
+            {section.questions.map((question, index) => (
+              <QuestionCard
+                key={question.question_id}
+                question={question}
+                index={index + 1}
+                diagram={diagramsByQuestionId.get(question.question_id)}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     );
   }
 
