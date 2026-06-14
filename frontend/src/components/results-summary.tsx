@@ -49,7 +49,24 @@ function DistributionList({
   );
 }
 
+const DIAGRAM_TYPE_LABELS: Record<string, string> = {
+  free_body: "Free Body",
+  circuit: "Circuit",
+  ray_diagram: "Ray Diagram",
+  graph: "Graph",
+  magnetic_field: "Magnetic Field",
+};
+
 export function ResultsSummary({ paper }: ResultsSummaryProps) {
+  const coverage = paper.diagram_coverage;
+  const diagramTypeCounts = coverage
+    ? Object.fromEntries(
+        Object.entries(DIAGRAM_TYPE_LABELS)
+          .map(([key, label]) => [label, coverage[key as keyof typeof coverage] as number])
+          .filter(([, value]) => (value as number) > 0)
+      )
+    : {};
+
   return (
     <Card>
       <CardHeader>
@@ -85,6 +102,23 @@ export function ResultsSummary({ paper }: ResultsSummaryProps) {
           title="Question Type Distribution"
           data={paper.type_distribution}
         />
+
+        {coverage && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">Diagram Coverage</h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Stat label="Diagram Questions" value={coverage.diagram_questions} />
+                <Stat
+                  label="Diagram %"
+                  value={`${coverage.diagram_percentage}%`}
+                />
+              </div>
+              <DistributionList title="By Diagram Type" data={diagramTypeCounts} />
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

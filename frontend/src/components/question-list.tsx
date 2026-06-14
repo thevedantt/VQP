@@ -74,14 +74,22 @@ function QuestionCard({
             </ul>
           )}
           {diagram && (
-            <details className="rounded-lg border border-border p-2 text-xs">
-              <summary className="cursor-pointer font-medium text-muted-foreground">
-                Diagram specification ({DIAGRAM_TYPE_LABELS[diagram.diagram_type]})
-              </summary>
-              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">
-                {JSON.stringify(diagram.specification, null, 2)}
-              </pre>
-            </details>
+            <div className="flex flex-col gap-2">
+              {diagram.svg && (
+                <div
+                  className="overflow-x-auto rounded-lg border border-border bg-white p-2 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+                  dangerouslySetInnerHTML={{ __html: diagram.svg }}
+                />
+              )}
+              <details className="rounded-lg border border-border p-2 text-xs">
+                <summary className="cursor-pointer font-medium text-muted-foreground">
+                  Diagram specification ({DIAGRAM_TYPE_LABELS[diagram.diagram_type]})
+                </summary>
+                <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">
+                  {JSON.stringify(diagram.specification, null, 2)}
+                </pre>
+              </details>
+            </div>
           )}
         </CardContent>
       )}

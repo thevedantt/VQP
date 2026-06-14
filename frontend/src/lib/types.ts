@@ -25,6 +25,7 @@ export interface GeneratePaperRequest {
   pyq_percentage: number;
   ai_percentage: number;
   include_diagrams: boolean;
+  diagram_percentage: number;
   total_questions: number;
   chapters?: string[] | null;
 }
@@ -49,6 +50,17 @@ export interface DiagramSpec {
   question_id: string;
   diagram_type: DiagramType;
   specification: Record<string, unknown>;
+  svg: string;
+}
+
+export interface DiagramCoverage {
+  diagram_questions: number;
+  diagram_percentage: number;
+  free_body: number;
+  circuit: number;
+  ray_diagram: number;
+  graph: number;
+  magnetic_field: number;
 }
 
 export interface GeneratedPaperResponse {
@@ -65,6 +77,7 @@ export interface GeneratedPaperResponse {
   questions: QuestionItem[];
   generated_questions: QuestionItem[];
   diagrams: DiagramSpec[];
+  diagram_coverage: DiagramCoverage;
 }
 
 /** Error envelope returned by the backend's global exception handlers. */

@@ -43,6 +43,7 @@ export function PaperForm({ loading, onSubmit }: PaperFormProps) {
   const [difficulty, setDifficulty] = useState<DifficultyLevel>("medium");
   const [pyqPercentage, setPyqPercentage] = useState(60);
   const [includeDiagrams, setIncludeDiagrams] = useState(true);
+  const [diagramPercentage, setDiagramPercentage] = useState(40);
   const [totalQuestions, setTotalQuestions] = useState(16);
 
   const aiPercentage = 100 - pyqPercentage;
@@ -77,6 +78,7 @@ export function PaperForm({ loading, onSubmit }: PaperFormProps) {
       pyq_percentage: pyqPercentage,
       ai_percentage: aiPercentage,
       include_diagrams: includeDiagrams,
+      diagram_percentage: diagramPercentage,
       total_questions: clampedTotal,
     });
   }
@@ -145,18 +147,39 @@ export function PaperForm({ loading, onSubmit }: PaperFormProps) {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-border p-3 sm:col-span-2">
-            <div className="flex flex-col gap-0.5">
-              <Label htmlFor="include-diagrams">Include Diagrams</Label>
-              <span className="text-xs text-muted-foreground">
-                Run diagram detection and generate diagram specifications.
-              </span>
+          <div className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:col-span-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-0.5">
+                <Label htmlFor="include-diagrams">Include Diagrams</Label>
+                <span className="text-xs text-muted-foreground">
+                  Run diagram detection and generate diagram specifications.
+                </span>
+              </div>
+              <Switch
+                id="include-diagrams"
+                checked={includeDiagrams}
+                onCheckedChange={setIncludeDiagrams}
+              />
             </div>
-            <Switch
-              id="include-diagrams"
-              checked={includeDiagrams}
-              onCheckedChange={setIncludeDiagrams}
-            />
+
+            {includeDiagrams && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="diagram-percentage">Diagram Question Target</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {diagramPercentage}%
+                  </span>
+                </div>
+                <Slider
+                  id="diagram-percentage"
+                  value={[diagramPercentage]}
+                  min={0}
+                  max={100}
+                  step={5}
+                  onValueChange={([value]) => setDiagramPercentage(value)}
+                />
+              </div>
+            )}
           </div>
         </CardContent>
         <CardFooter className="justify-end gap-2">
