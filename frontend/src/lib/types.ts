@@ -108,3 +108,27 @@ export interface ApiErrorBody {
   message: string;
   detail?: string;
 }
+
+export interface AnalyzeDiagramRequest {
+  question: string;
+}
+
+/** The ONLY information the LLM layer is allowed to produce - no coordinates/geometry. */
+export interface PhysicsAnalysis {
+  diagram_required: boolean;
+  diagram_type: DiagramType;
+  chapter: string | null;
+  concept: string | null;
+  scenario: string | null;
+  entities: string[];
+  confidence: number;
+}
+
+export interface AnalyzeDiagramResponse {
+  question: string;
+  physics_analysis: PhysicsAnalysis;
+  selected_template: Record<string, unknown>;
+  semantic_schema: Record<string, unknown>;
+  render_schema: Record<string, unknown>;
+  svg: string;
+}

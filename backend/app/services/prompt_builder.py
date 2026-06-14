@@ -190,3 +190,46 @@ Respond with ONLY a JSON object matching this schema (no markdown, no commentary
 If the question does not require a diagram, set "diagram_type" to "none", "scenario" to null,
 and "entities" to an empty array.
 """
+
+
+def build_physics_analysis_prompt(question_text: str, vocabulary: str) -> str:
+    """Build a prompt asking an LLM to perform physics understanding ONLY (no geometry).
+
+    This is the entry point of the Physics Semantic Diagram Intelligence
+    pipeline: the model identifies *what* the diagram is about (diagram type,
+    concept, scenario, entities) using only the vocabulary supplied by the
+    diagram taxonomy. It must NEVER produce coordinates, pixel positions,
+    angles, sizes, or SVG/markup - all geometry is computed deterministically
+    downstream by ``SchemaPopulationService``.
+    """
+
+    return f"""You are a CBSE Class 12 Physics concept analyst. Your ONLY job is to identify
+the physics concept and scenario behind a question - you do NOT design or draw the diagram.
+
+IMPORTANT RULES:
+- You MUST NEVER output coordinates, x/y positions, pixel values, angles, sizes, geometry, or SVG.
+- You MUST choose "diagram_type", "concept", and "scenario" ONLY from the vocabulary below.
+- If nothing in the vocabulary matches, set "concept" and "scenario" to null.
+
+Vocabulary (diagram_type: concept (scenarios: ...)):
+{vocabulary}
+
+Question:
+\"\"\"
+{question_text}
+\"\"\"
+
+Respond with ONLY a JSON object matching this schema (no markdown, no commentary):
+{{
+  "diagram_required": <true or false>,
+  "diagram_type": "<one of: {", ".join(sorted(_VALID_DIAGRAM_TYPES))}>",
+  "chapter": "<NCERT Class 12 Physics chapter name this question belongs to, or null>",
+  "concept": "<concept name from the vocabulary above, or null>",
+  "scenario": "<scenario name from the vocabulary above, or null>",
+  "entities": ["<diagram entity 1>", "<diagram entity 2>", "..."],
+  "confidence": <number between 0 and 1>
+}}
+
+If the question does not require a diagram, set "diagram_required" to false, "diagram_type" to
+"none", "concept" and "scenario" to null, and "entities" to an empty array.
+"""

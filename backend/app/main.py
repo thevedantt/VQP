@@ -10,7 +10,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import diagram, health, paper
+from app.api import debug, diagram, health, paper
 from app.api.dependencies import get_orchestrator
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
@@ -41,6 +41,7 @@ register_exception_handlers(app)
 app.include_router(health.router)
 app.include_router(paper.router)
 app.include_router(diagram.router)
+app.include_router(debug.router)
 
 
 @app.on_event("startup")

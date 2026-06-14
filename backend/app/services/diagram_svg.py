@@ -48,10 +48,11 @@ def _line(x1: float, y1: float, x2: float, y2: float, stroke: str = "#1f2937", s
     return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke}" stroke-width="{stroke_width}"{dash_attr} />'
 
 
-def _arrow(x1: float, y1: float, x2: float, y2: float, color: str = "dark") -> str:
+def _arrow(x1: float, y1: float, x2: float, y2: float, color: str = "dark", dashed: bool = False) -> str:
     stroke = _STROKE_COLORS.get(color, "#1f2937")
     marker = _MARKERS.get(color, "arrow-dark")
-    return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke}" stroke-width="2" marker-end="url(#{marker})" />'
+    dash_attr = ' stroke-dasharray="5 5"' if dashed else ""
+    return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke}" stroke-width="2" marker-end="url(#{marker})"{dash_attr} />'
 
 
 def _text(x: float, y: float, text: str, anchor: str = "start", dy: float = 0, fill: str = "#1f2937", font_weight: str = "normal", rotation: float | None = None) -> str:
@@ -95,12 +96,49 @@ def _render_free_body(spec: dict[str, Any]) -> str:
     return _wrap_svg(spec["canvas"], parts)
 
 
+def _transformer_svg(x: float, y: float, label: str) -> str:
+    core_left, core_right = x - 4, x + 4
+    coil_left_x, coil_right_x = x - 20, x + 20
+
+    parts: list[str] = [
+        _line(core_left, y - 100, core_left, y + 100, stroke_width=3),
+        _line(core_right, y - 100, core_right, y + 100, stroke_width=3),
+    ]
+    for i in range(3):
+        y0 = y - 100 + i * 66.7
+        y1 = y0 + 66.7
+        parts.append(f'<path d="M {coil_left_x} {y0} A 16 16 0 0 1 {coil_left_x} {y1}" fill="none" stroke="#1f2937" stroke-width="2" />')
+        parts.append(f'<path d="M {coil_right_x} {y0} A 16 16 0 0 0 {coil_right_x} {y1}" fill="none" stroke="#1f2937" stroke-width="2" />')
+
+    for yy in (y - 100, y, y + 100):
+        parts.append(_line(coil_right_x, yy, x + 40, yy, stroke_width=2))
+        parts.append(f'<circle cx="{x + 40}" cy="{yy}" r="3" fill="#1f2937" />')
+
+    parts.append(_line(coil_left_x, y - 100, x - 40, y - 100, stroke_width=2))
+    parts.append(_line(coil_left_x, y + 100, x - 40, y + 100, stroke_width=2))
+    parts.append(_line(x - 40, y - 100, x - 40, y + 100, stroke_width=2))
+
+    parts.append(_text(x, y + 116, label, anchor="middle"))
+    return "".join(parts)
+
+
 def _circuit_symbol(c: dict[str, Any]) -> str:
     t = c["type"]
     x, y, label = c.get("x", 0), c.get("y", 0), c.get("label", "")
+
+    if t == "transformer":
+        return _transformer_svg(x, y, label)
+
     bg = _rect(x - 32, y - 16, 64, 32, fill="white", stroke="none")
 
-    if t == "battery":
+    if t == "diode":
+        body = (
+            _line(x - 28, y, x - 6, y, stroke_width=2)
+            + _polygon([[x - 6, y - 12], [x - 6, y + 12], [x + 6, y]], fill="#1f2937")
+            + _line(x + 6, y - 12, x + 6, y + 12, stroke_width=2)
+            + _line(x + 6, y, x + 28, y, stroke_width=2)
+        )
+    elif t == "battery":
         body = _line(x - 8, y - 16, x - 8, y + 16, stroke_width=2) + _line(x + 8, y - 8, x + 8, y + 8, stroke_width=5)
     elif t in ("ammeter", "voltmeter", "galvanometer"):
         letter = {"ammeter": "A", "voltmeter": "V", "galvanometer": "G"}[t]
@@ -201,11 +239,13 @@ def _render_ray_diagram(spec: dict[str, Any]) -> str:
             parts.append(_optical_element_svg(c))
         elif t in ("object_arrow", "image_arrow"):
             color = "red" if t == "object_arrow" else "blue"
-            parts.append(_arrow(c["x"], c["y1"], c["x"], c["y2"], color=color))
+            parts.append(_arrow(c["x"], c["y1"], c["x"], c["y2"], color=color, dashed=c.get("dashed", False)))
             label_y = c["y2"] - 8 if c["y2"] < c["y1"] else c["y2"] + 18
             parts.append(_text(c["x"], label_y, c.get("label", ""), anchor="middle"))
         elif t == "ray":
             parts.append(_polyline([[c["x1"], c["y1"]], [c["x2"], c["y2"]], [c["x3"], c["y3"]]], stroke="#f97316", stroke_width=1.5, dashed=True))
+    for label in spec.get("labels", []):
+        parts.append(_text(label["x"], label["y"], label["text"], anchor=label.get("anchor", "start")))
     return _wrap_svg(spec["canvas"], parts)
 
 

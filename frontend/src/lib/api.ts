@@ -1,6 +1,8 @@
 /** Thin API service layer for the VisualQ Pilot FastAPI backend. */
 
 import type {
+  AnalyzeDiagramRequest,
+  AnalyzeDiagramResponse,
   ApiErrorBody,
   GeneratePaperRequest,
   GeneratedPaperResponse,
@@ -62,4 +64,14 @@ export function generatePaper(
   request: GeneratePaperRequest
 ): Promise<GeneratedPaperResponse> {
   return postJson<GeneratedPaperResponse>("/api/generate-paper", request);
+}
+
+/** POST /api/debug/analyze-diagram */
+export function analyzeDiagram(
+  request: AnalyzeDiagramRequest
+): Promise<AnalyzeDiagramResponse> {
+  return postJson<AnalyzeDiagramResponse>(
+    "/api/debug/analyze-diagram",
+    request
+  );
 }

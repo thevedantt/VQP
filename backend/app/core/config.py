@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     book_knowledge_base_file: Path = DATA_DIR / "Book" / "physics_part1_knowledge_base.json"
     book_chapters_dir: Path = DATA_DIR / "Book" / "chapters"
 
+    diagram_taxonomy_dir: Path = DATA_DIR / "diagram_taxonomy"
+    diagram_templates_dir: Path = DATA_DIR / "diagram_templates"
+
     # Paper generation defaults
     default_total_questions: int = 16
     max_total_questions: int = 50

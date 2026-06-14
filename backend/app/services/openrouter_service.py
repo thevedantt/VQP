@@ -24,6 +24,7 @@ from app.core.exceptions import OpenRouterServiceError
 from app.models.enums import DifficultyLevel, DiagramType, QuestionType
 from app.services.prompt_builder import (
     build_concept_extraction_prompt,
+    build_physics_analysis_prompt,
     build_question_prompt,
     normalize_question_response,
 )
@@ -147,4 +148,24 @@ class OpenRouterService:
             return data
         except Exception as exc:  # pragma: no cover - best-effort enrichment
             logger.warning("OpenRouter concept extraction failed: %s", exc)
+            return None
+
+    def analyze_physics(self, question_text: str, vocabulary: str) -> dict[str, Any] | None:
+        """Best-effort single-attempt physics understanding. Returns ``None`` on any failure.
+
+        Restricted to ``{diagram_required, diagram_type, chapter, concept,
+        scenario, entities, confidence}`` - never coordinates or geometry.
+        """
+
+        if not self._enabled:
+            return None
+
+        try:
+            content = self._chat_completion(build_physics_analysis_prompt(question_text, vocabulary), temperature=0.2)
+            data = json.loads(content)
+            if not isinstance(data, dict):
+                return None
+            return data
+        except Exception as exc:  # pragma: no cover - best-effort enrichment
+            logger.warning("OpenRouter physics analysis failed: %s", exc)
             return None

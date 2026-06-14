@@ -53,13 +53,29 @@ class FreeBodyDiagramGenerator:
     """Builds a free body diagram: an object with labeled force vectors."""
 
     @classmethod
-    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
+    def generate(
+        cls,
+        question_text: str,
+        entities: list[str] | None = None,
+        scenario: str | None = None,
+        rules: dict[str, Any] | None = None,
+        concept: str | None = None,
+    ) -> dict[str, Any]:
         text = question_text.lower()
 
         on_incline = _contains_any(text, ["incline", "inclined plane", "slope", "ramp"])
         has_friction = _contains_any(text, ["friction"])
         has_tension = _contains_any(text, ["tension", "string", "rope", "wire is attached", "pulley"])
         has_applied_force = _contains_any(text, ["applied force", "force f", "pushed", "pulled", "push", "pull"])
+
+        if rules:
+            if "on_incline" in rules:
+                on_incline = bool(rules["on_incline"])
+            forces = set(rules.get("forces", []))
+            if forces:
+                has_friction = "friction" in forces
+                has_tension = "tension" in forces
+                has_applied_force = "applied_force" in forces
 
         components: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
@@ -188,8 +204,19 @@ class CircuitDiagramGenerator:
     """Builds a circuit diagram: a wire loop with electrical components."""
 
     @classmethod
-    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
+    def generate(
+        cls,
+        question_text: str,
+        entities: list[str] | None = None,
+        scenario: str | None = None,
+        rules: dict[str, Any] | None = None,
+        concept: str | None = None,
+    ) -> dict[str, Any]:
         text = question_text.lower()
+        layout = (rules or {}).get("layout")
+
+        if layout == "full_wave_rectifier_center_tapped":
+            return cls._generate_full_wave_rectifier(entities, scenario)
 
         component_types: list[tuple[str, str]] = []
         for component_type, keywords in _CIRCUIT_COMPONENT_KEYWORDS:
@@ -210,7 +237,7 @@ class CircuitDiagramGenerator:
         if not component_types:
             component_types = [("battery", "battery"), ("R1", "resistor")]
 
-        is_bridge = _contains_any(text, ["wheatstone bridge", "meter bridge"])
+        is_bridge = layout == "wheatstone_bridge" or _contains_any(text, ["wheatstone bridge", "meter bridge"])
 
         components: list[dict[str, Any]] = []
         connections: list[dict[str, Any]] = []
@@ -264,6 +291,50 @@ class CircuitDiagramGenerator:
             },
         }
 
+    @classmethod
+    def _generate_full_wave_rectifier(cls, entities: list[str] | None, scenario: str | None) -> dict[str, Any]:
+        """Center-tapped full-wave rectifier: transformer secondary -> D1/D2 -> shared
+        output node -> load resistor RL -> back to the center tap."""
+
+        components: list[dict[str, Any]] = [
+            {"id": "transformer", "type": "transformer", "x": 160, "y": 200, "label": "Transformer"},
+            {"id": "diode_d1", "type": "diode", "x": 350, "y": 100, "label": "D1"},
+            {"id": "diode_d2", "type": "diode", "x": 350, "y": 300, "label": "D2"},
+            {"id": "load_resistor", "type": "resistor", "x": 570, "y": 200, "label": "RL"},
+        ]
+        connections: list[dict[str, Any]] = [
+            {"from": [200, 100], "to": [320, 100], "type": "wire"},
+            {"from": [380, 100], "to": [480, 100], "type": "wire"},
+            {"from": [200, 300], "to": [320, 300], "type": "wire"},
+            {"from": [380, 300], "to": [480, 300], "type": "wire"},
+            {"from": [480, 100], "to": [480, 300], "type": "wire"},
+            {"from": [480, 200], "to": [540, 200], "type": "wire"},
+            {"from": [600, 200], "to": [640, 200], "type": "wire"},
+            {"from": [200, 200], "to": [220, 200], "type": "wire"},
+            {"from": [220, 200], "to": [220, 340], "type": "wire"},
+            {"from": [220, 340], "to": [640, 340], "type": "wire"},
+            {"from": [640, 340], "to": [640, 200], "type": "wire"},
+        ]
+        labels = [
+            {"text": "AC Input", "x": 160, "y": 380, "anchor": "middle"},
+            {"text": "DC Output (across RL)", "x": 570, "y": 270, "anchor": "middle"},
+        ]
+
+        return {
+            "diagram_type": "circuit",
+            "title": "Full Wave Rectifier (Center-Tapped)",
+            "canvas": dict(_CANVAS),
+            "components": components,
+            "connections": connections,
+            "labels": labels,
+            "metadata": {
+                "layout": "full_wave_rectifier_center_tapped",
+                "component_count": len(components),
+                "entities": entities or [],
+                "scenario": scenario,
+            },
+        }
+
 
 _GRAPH_AXIS_PRESETS: list[tuple[list[str], str, str, str, str]] = [
     (["wheatstone", "v-i", "i-v", "potential difference", "current"], "Current (I)", "A", "Potential Difference (V)", "V"),
@@ -279,29 +350,51 @@ class GraphDiagramGenerator:
     """Builds a labeled axes + curve specification for variation-type questions."""
 
     @classmethod
-    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
+    def generate(
+        cls,
+        question_text: str,
+        entities: list[str] | None = None,
+        scenario: str | None = None,
+        rules: dict[str, Any] | None = None,
+        concept: str | None = None,
+    ) -> dict[str, Any]:
         text = question_text.lower()
         hint_text = " ".join([text, (scenario or "").lower(), " ".join(entities or []).lower()])
 
-        for keywords, x_label, x_unit, y_label, y_unit in _GRAPH_AXIS_PRESETS:
-            if all(keyword in hint_text for keyword in keywords):
-                break
+        if rules and rules.get("x_label") and rules.get("y_label"):
+            x_label, x_unit = rules["x_label"], rules.get("x_unit", "")
+            y_label, y_unit = rules["y_label"], rules.get("y_unit", "")
         else:
-            x_label, x_unit, y_label, y_unit = "Independent Variable", "", "Dependent Variable", ""
+            for keywords, x_label, x_unit, y_label, y_unit in _GRAPH_AXIS_PRESETS:
+                if all(keyword in hint_text for keyword in keywords):
+                    break
+            else:
+                x_label, x_unit, y_label, y_unit = "Independent Variable", "", "Dependent Variable", ""
 
-        curve_type = "linear"
-        if _contains_any(hint_text, ["exponential", "decay", "charging", "discharging"]):
+        rule_curve_type = (rules or {}).get("curve_type")
+        if rule_curve_type:
+            curve_type = rule_curve_type
+        else:
+            curve_type = "linear"
+            if _contains_any(hint_text, ["exponential", "decay", "charging", "discharging"]):
+                curve_type = "exponential"
+            elif _contains_any(hint_text, ["non-linear", "nonlinear", "diode", "characteristic"]):
+                curve_type = "non_linear"
+
+        decaying = curve_type == "exponential_decay" or _contains_any(hint_text, ["discharging", "decay"])
+        has_intercept = curve_type == "linear_with_intercept"
+        if curve_type in ("exponential_rise", "exponential_decay"):
             curve_type = "exponential"
-        elif _contains_any(hint_text, ["non-linear", "nonlinear", "diode", "characteristic"]):
-            curve_type = "non_linear"
-
-        decaying = _contains_any(hint_text, ["discharging", "decay"])
+        elif has_intercept:
+            curve_type = "linear"
 
         origin = (100.0, 350.0)
         x_end = (750.0, 350.0)
         y_end = (100.0, 30.0)
         plot_width = x_end[0] - origin[0]
         plot_height = origin[1] - y_end[1]
+
+        intercept_frac = 0.25 if has_intercept else 0.0
 
         points: list[list[float]] = []
         steps = 30
@@ -314,7 +407,7 @@ class GraphDiagramGenerator:
             else:
                 frac = t
 
-            x = origin[0] + plot_width * t
+            x = origin[0] + plot_width * (intercept_frac + (1 - intercept_frac) * t)
             y = origin[1] - plot_height * frac
             points.append([round(x, 1), round(y, 1)])
 
@@ -323,6 +416,12 @@ class GraphDiagramGenerator:
             {"id": "y_axis", "type": "axis", "x1": origin[0], "y1": origin[1], "x2": y_end[0], "y2": y_end[1]},
             {"id": "curve_1", "type": "curve", "points": points, "label": curve_type},
         ]
+
+        if has_intercept:
+            intercept_x = origin[0] + plot_width * intercept_frac
+            components.append(
+                {"id": "threshold_marker", "type": "field_circle", "cx": intercept_x, "cy": origin[1], "radius": 4}
+            )
 
         x_axis_text = f"{x_label} ({x_unit})" if x_unit else x_label
         y_axis_text = f"{y_label} ({y_unit})" if y_unit else y_label
@@ -364,13 +463,83 @@ _RAY_OPTICAL_ELEMENTS: list[tuple[str, str, str]] = [
 _ELEMENT_TO_RENDER: dict[str, str] = {_slugify(element): render for _, element, render in _RAY_OPTICAL_ELEMENTS}
 
 
+_CONCEPT_TO_RENDER_TYPE: dict[str, str] = {
+    "convex_lens": "convex_lens",
+    "concave_lens": "concave_lens",
+    "concave_mirror": "concave_mirror",
+    "convex_mirror": "convex_mirror",
+    "plane_mirror": "plane_mirror",
+}
+
+# Categorical object/image position -> distance from the optical element, in
+# multiples of a fixed focal-length pixel unit. Used only by the rules-driven
+# geometry engine (``rules`` is not None) - never by the LLM.
+_POSITION_OFFSET_UNITS: dict[str, float] = {
+    "beyond_2f": 2.6,
+    "at_2f": 2.0,
+    "between_f_and_2f": 1.5,
+    "at_focus": 1.0,
+    "between_lens_and_focus": 0.5,
+    "any_position": 1.5,
+}
+
+# Categorical image size -> scale factor applied to the object's height.
+_SIZE_FACTORS: dict[str, float] = {
+    "diminished": 0.5,
+    "same": 1.0,
+    "magnified": 1.6,
+    "highly_magnified": 2.4,
+}
+
+_FOCAL_UNIT = 80.0
+_BASE_OBJECT_HEIGHT = 80.0
+
+
 class RayDiagramGenerator:
     """Builds a principal-axis + optical element + object/image ray diagram."""
 
     @classmethod
-    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
+    def generate(
+        cls,
+        question_text: str,
+        entities: list[str] | None = None,
+        scenario: str | None = None,
+        rules: dict[str, Any] | None = None,
+        concept: str | None = None,
+    ) -> dict[str, Any]:
         text = question_text.lower()
 
+        axis_y = 200.0
+        element_x = 420.0
+
+        if rules:
+            optical_element = concept or "convex_lens"
+            render_type = _CONCEPT_TO_RENDER_TYPE.get(optical_element, "convex_lens")
+            components: list[dict[str, Any]] = [
+                {"id": "principal_axis", "type": "axis", "x1": 60, "y1": axis_y, "x2": 740, "y2": axis_y},
+                {
+                    "id": "optical_element",
+                    "type": render_type,
+                    "x": element_x,
+                    "y": axis_y,
+                    "height": 240,
+                    "label": optical_element.replace("_", " ").title(),
+                },
+            ]
+            labels, image_components = cls._generate_from_rules(rules, axis_y, element_x)
+            components.extend(image_components)
+
+            return {
+                "diagram_type": "ray_diagram",
+                "title": "Ray Diagram",
+                "canvas": dict(_CANVAS),
+                "components": components,
+                "connections": [],
+                "labels": labels,
+                "metadata": {"optical_element": optical_element, "entities": entities or [], "scenario": scenario, "rules": rules},
+            }
+
+        # Legacy generic geometry (no physics-analyzer rules available).
         optical_element = "convex_lens"
         render_type = "convex_lens"
 
@@ -383,10 +552,7 @@ class RayDiagramGenerator:
                     optical_element, render_type = element, render
                     break
 
-        axis_y = 200.0
-        element_x = 420.0
-
-        components: list[dict[str, Any]] = [
+        components = [
             {"id": "principal_axis", "type": "axis", "x1": 60, "y1": axis_y, "x2": 740, "y2": axis_y},
             {
                 "id": "optical_element",
@@ -449,6 +615,118 @@ class RayDiagramGenerator:
             "metadata": {"optical_element": optical_element, "entities": entities or [], "scenario": scenario},
         }
 
+    @classmethod
+    def _generate_from_rules(cls, rules: dict[str, Any], axis_y: float, element_x: float) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Categorical geometry engine: turns descriptive ``rules`` into object/image/ray components.
+
+        ``rules`` carries only categorical attributes (``object_position``,
+        ``image_side``, ``image_position``, ``image_nature``, ``orientation``,
+        ``size``) - all pixel positions below are computed deterministically
+        from those categories, never supplied by an LLM.
+        """
+
+        object_position = rules.get("object_position", "between_f_and_2f")
+        image_side = rules.get("image_side", "opposite")
+        image_position = rules.get("image_position", "between_f_and_2f")
+        image_nature = rules.get("image_nature", "real")
+        orientation = rules.get("orientation", "inverted")
+        size = rules.get("size", "same")
+
+        object_offset = _POSITION_OFFSET_UNITS.get(object_position, 1.5) * _FOCAL_UNIT
+        object_x = element_x - object_offset
+        object_height = _BASE_OBJECT_HEIGHT
+
+        components: list[dict[str, Any]] = [
+            {"id": "object", "type": "object_arrow", "x": object_x, "y1": axis_y, "y2": axis_y - object_height, "label": "Object (O)"}
+        ]
+        labels: list[dict[str, Any]] = []
+
+        if image_position == "at_infinity":
+            edge_x = _CANVAS["width"] - 20
+            exit_y_1 = axis_y - object_height * 0.6
+            exit_y_2 = axis_y - object_height * 0.3
+
+            components.append(
+                {
+                    "id": "ray_1",
+                    "type": "ray",
+                    "x1": object_x,
+                    "y1": axis_y - object_height,
+                    "x2": element_x,
+                    "y2": exit_y_1,
+                    "x3": edge_x,
+                    "y3": exit_y_1,
+                }
+            )
+            components.append(
+                {
+                    "id": "ray_2",
+                    "type": "ray",
+                    "x1": object_x,
+                    "y1": axis_y - object_height,
+                    "x2": element_x,
+                    "y2": exit_y_2,
+                    "x3": edge_x,
+                    "y3": exit_y_2,
+                }
+            )
+            labels.append({"text": "Image at Infinity", "x": edge_x, "y": axis_y - object_height - 16, "anchor": "end"})
+            return labels, components
+
+        image_offset_units = _POSITION_OFFSET_UNITS.get(image_position, 1.5)
+        if image_side == "same" and image_position == object_position:
+            # Avoid overlapping the object when both fall in the same
+            # categorical bracket on the same side of the optical element.
+            image_offset_units += 0.3
+        image_offset = image_offset_units * _FOCAL_UNIT
+        image_x = element_x + image_offset if image_side == "opposite" else element_x - image_offset
+
+        size_factor = _SIZE_FACTORS.get(size, 1.0)
+        image_height_magnitude = object_height * size_factor
+        image_height_signed = image_height_magnitude if orientation == "erect" else -image_height_magnitude
+        image_y = axis_y - image_height_signed
+
+        is_virtual = image_nature == "virtual"
+        nature_text = "Virtual" if is_virtual else "Real"
+        components.append(
+            {
+                "id": "image",
+                "type": "image_arrow",
+                "x": image_x,
+                "y1": axis_y,
+                "y2": image_y,
+                "label": f"Image (I) - {nature_text}",
+                "dashed": is_virtual,
+            }
+        )
+
+        components.append(
+            {
+                "id": "ray_1",
+                "type": "ray",
+                "x1": object_x,
+                "y1": axis_y - object_height,
+                "x2": element_x,
+                "y2": axis_y,
+                "x3": image_x,
+                "y3": image_y,
+            }
+        )
+        components.append(
+            {
+                "id": "ray_2",
+                "type": "ray",
+                "x1": object_x,
+                "y1": axis_y - object_height,
+                "x2": element_x,
+                "y2": axis_y - object_height * 0.3,
+                "x3": image_x,
+                "y3": image_y,
+            }
+        )
+
+        return labels, components
+
 
 _MAGNETIC_SOURCES: list[tuple[list[str], str]] = [
     (["solenoid"], "solenoid"),
@@ -463,14 +741,23 @@ class MagneticFieldDiagramGenerator:
     """Builds a magnetic field-line specification for a given field source."""
 
     @classmethod
-    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
+    def generate(
+        cls,
+        question_text: str,
+        entities: list[str] | None = None,
+        scenario: str | None = None,
+        rules: dict[str, Any] | None = None,
+        concept: str | None = None,
+    ) -> dict[str, Any]:
         text = question_text.lower()
 
-        source = "straight_wire"
-        for keywords, source_type in _MAGNETIC_SOURCES:
-            if any(keyword in text for keyword in keywords):
-                source = source_type
-                break
+        source = (rules or {}).get("source")
+        if not source:
+            source = "straight_wire"
+            for keywords, source_type in _MAGNETIC_SOURCES:
+                if any(keyword in text for keyword in keywords):
+                    source = source_type
+                    break
 
         cx, cy = 400.0, 200.0
         components: list[dict[str, Any]] = []

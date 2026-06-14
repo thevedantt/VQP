@@ -147,3 +147,32 @@ class GeminiService:
         except Exception as exc:  # pragma: no cover - best-effort enrichment
             logger.warning("Gemini concept extraction failed: %s", exc)
             return None
+
+    def analyze_physics(self, question_text: str, vocabulary: str) -> dict[str, Any] | None:
+        """Best-effort single-attempt physics understanding. Returns ``None`` on any failure.
+
+        Restricted to ``{diagram_required, diagram_type, chapter, concept,
+        scenario, entities, confidence}`` - never coordinates or geometry.
+        """
+
+        if not self._enabled:
+            return None
+
+        from app.services.prompt_builder import build_physics_analysis_prompt
+
+        try:
+            response = self._client.models.generate_content(
+                model=self._model_name,
+                contents=build_physics_analysis_prompt(question_text, vocabulary),
+                config=genai_types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.2,
+                ),
+            )
+            data = json.loads(response.text)
+            if not isinstance(data, dict):
+                return None
+            return data
+        except Exception as exc:  # pragma: no cover - best-effort enrichment
+            logger.warning("Gemini physics analysis failed: %s", exc)
+            return None

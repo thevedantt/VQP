@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -36,9 +37,17 @@ export default function Home() {
     <div className="flex flex-1 flex-col bg-background">
       <header className="border-b border-border">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-1 px-4 py-6">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            VisualQ Pilot
-          </h1>
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              VisualQ Pilot
+            </h1>
+            <Link
+              href="/test"
+              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Diagram Playground
+            </Link>
+          </div>
           <p className="text-sm text-muted-foreground">
             AI-powered CBSE Class 12 Physics paper generator - backend test
             console.

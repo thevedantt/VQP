@@ -54,6 +54,12 @@ class GenerateDiagramRequest(BaseModel):
     question: str = Field(..., min_length=3, max_length=5000, description="Question text used to ground the diagram.")
 
 
+class AnalyzeDiagramRequest(BaseModel):
+    """Input payload for POST /api/debug/analyze-diagram."""
+
+    question: str = Field(..., min_length=3, max_length=5000, description="Question text to analyze.")
+
+
 class GenerateQuestionRequest(BaseModel):
     """Internal request shape used by the Gemini question generator."""
 

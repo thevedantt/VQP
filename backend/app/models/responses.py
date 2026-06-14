@@ -108,6 +108,35 @@ class GenerateDiagramResponse(BaseModel):
     svg: str = ""
 
 
+class PhysicsAnalysisModel(BaseModel):
+    """Mirrors ``PhysicsAnalysisService.PhysicsAnalysis`` - the ONLY information
+    an LLM is allowed to produce about a diagram (no coordinates/geometry)."""
+
+    diagram_required: bool
+    diagram_type: DiagramType
+    chapter: str | None = None
+    concept: str | None = None
+    scenario: str | None = None
+    entities: list[str] = Field(default_factory=list)
+    confidence: float = Field(ge=0.0, le=1.0, default=0.0)
+
+
+class AnalyzeDiagramResponse(BaseModel):
+    """Output payload for POST /api/debug/analyze-diagram.
+
+    Exposes every intermediate artifact of the
+    Question -> PhysicsAnalyzer -> Template Selection -> SchemaPopulation -> SVG
+    pipeline for debugging/inspection.
+    """
+
+    question: str
+    physics_analysis: PhysicsAnalysisModel
+    selected_template: dict[str, Any]
+    semantic_schema: dict[str, Any]
+    render_schema: dict[str, Any]
+    svg: str = ""
+
+
 class HealthResponse(BaseModel):
     """Output payload for GET /api/health."""
 

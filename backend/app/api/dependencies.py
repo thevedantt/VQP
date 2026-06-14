@@ -11,11 +11,15 @@ from app.core.config import get_settings
 from app.services.book_service import BookService
 from app.services.concept_extraction_service import ConceptExtractionService
 from app.services.diagram_service import DiagramService
+from app.services.diagram_taxonomy_service import DiagramTaxonomyService
+from app.services.diagram_template_service import DiagramTemplateService
 from app.services.gemini_service import GeminiService
 from app.services.openrouter_service import OpenRouterService
 from app.services.orchestrator_service import PaperGenerationOrchestrator
 from app.services.paper_evaluator import PaperEvaluator
 from app.services.paper_service import PaperService
+from app.services.physics_analyzer_service import PhysicsAnalyzerService
+from app.services.schema_population_service import SchemaPopulationService
 from app.services.question_service import QuestionService
 from app.services.weightage_service import WeightageService
 
@@ -66,6 +70,33 @@ def get_openrouter_service() -> OpenRouterService:
 @lru_cache
 def get_concept_extraction_service() -> ConceptExtractionService:
     return ConceptExtractionService(get_openrouter_service(), get_gemini_service(), get_diagram_service())
+
+
+@lru_cache
+def get_diagram_taxonomy_service() -> DiagramTaxonomyService:
+    settings = get_settings()
+    return DiagramTaxonomyService(settings.diagram_taxonomy_dir)
+
+
+@lru_cache
+def get_diagram_template_service() -> DiagramTemplateService:
+    settings = get_settings()
+    return DiagramTemplateService(settings.diagram_templates_dir)
+
+
+@lru_cache
+def get_physics_analyzer_service() -> PhysicsAnalyzerService:
+    return PhysicsAnalyzerService(
+        get_openrouter_service(),
+        get_gemini_service(),
+        get_diagram_service(),
+        get_diagram_taxonomy_service(),
+    )
+
+
+@lru_cache
+def get_schema_population_service() -> SchemaPopulationService:
+    return SchemaPopulationService()
 
 
 @lru_cache
