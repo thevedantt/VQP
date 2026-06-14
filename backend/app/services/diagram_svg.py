@@ -10,6 +10,9 @@ from __future__ import annotations
 from html import escape as _esc
 from typing import Any
 
+from app.services.matplotlib_renderer import render_graph as _render_graph_matplotlib
+from app.services.schemdraw_renderer import render_circuit as _render_circuit_schemdraw
+
 _ARROW_DEFS = (
     '<defs>'
     '<marker id="arrow-dark" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" '
@@ -121,6 +124,13 @@ def _circuit_symbol(c: dict[str, Any]) -> str:
 
 
 def _render_circuit(spec: dict[str, Any]) -> str:
+    svg = _render_circuit_schemdraw(spec)
+    if svg is not None:
+        return svg
+    return _render_circuit_fallback(spec)
+
+
+def _render_circuit_fallback(spec: dict[str, Any]) -> str:
     parts: list[str] = []
     for c in spec["components"]:
         if c["type"] == "wire_loop":
@@ -136,6 +146,13 @@ def _render_circuit(spec: dict[str, Any]) -> str:
 
 
 def _render_graph(spec: dict[str, Any]) -> str:
+    svg = _render_graph_matplotlib(spec)
+    if svg is not None:
+        return svg
+    return _render_graph_fallback(spec)
+
+
+def _render_graph_fallback(spec: dict[str, Any]) -> str:
     parts: list[str] = []
     for c in spec["components"]:
         if c["type"] == "axis":

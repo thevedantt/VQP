@@ -31,6 +31,10 @@ def _contains_any(text: str, keywords: list[str]) -> bool:
     return any(keyword in text for keyword in keywords)
 
 
+def _slugify(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", value.lower()).strip("_")
+
+
 def _endpoint(cx: float, cy: float, angle_deg: float, length: float) -> dict[str, float]:
     """Return ``{"x2": ..., "y2": ...}`` at ``length`` from (cx, cy) at ``angle_deg``.
 
@@ -49,7 +53,7 @@ class FreeBodyDiagramGenerator:
     """Builds a free body diagram: an object with labeled force vectors."""
 
     @classmethod
-    def generate(cls, question_text: str) -> dict[str, Any]:
+    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
         text = question_text.lower()
 
         on_incline = _contains_any(text, ["incline", "inclined plane", "slope", "ramp"])
@@ -141,6 +145,8 @@ class FreeBodyDiagramGenerator:
                 "has_friction": has_friction,
                 "has_tension": has_tension,
                 "has_applied_force": has_applied_force,
+                "entities": entities or [],
+                "scenario": scenario,
             },
         }
 
@@ -156,18 +162,44 @@ _CIRCUIT_COMPONENT_KEYWORDS: list[tuple[str, list[str]]] = [
     ("rheostat", ["rheostat", "potentiometer"]),
 ]
 
+# Maps concept-extraction diagram entity names (snake_case or freeform) to
+# circuit component types renderable by the schemdraw/custom SVG renderers.
+_ENTITY_COMPONENT_MAP: dict[str, str] = {
+    "battery": "battery",
+    "cell": "battery",
+    "transformer": "transformer",
+    "diode": "diode",
+    "rectifier": "diode",
+    "resistor": "resistor",
+    "load_resistor": "resistor",
+    "load": "resistor",
+    "capacitor": "capacitor",
+    "inductor": "inductor",
+    "switch": "switch",
+    "ammeter": "ammeter",
+    "voltmeter": "voltmeter",
+    "galvanometer": "galvanometer",
+    "rheostat": "rheostat",
+    "potentiometer": "rheostat",
+}
+
 
 class CircuitDiagramGenerator:
     """Builds a circuit diagram: a wire loop with electrical components."""
 
     @classmethod
-    def generate(cls, question_text: str) -> dict[str, Any]:
+    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
         text = question_text.lower()
 
         component_types: list[tuple[str, str]] = []
         for component_type, keywords in _CIRCUIT_COMPONENT_KEYWORDS:
             if _contains_any(text, keywords):
                 component_types.append((component_type, component_type))
+
+        for entity in entities or []:
+            mapped_type = _ENTITY_COMPONENT_MAP.get(_slugify(entity))
+            if mapped_type and not any(t == mapped_type for _, t in component_types):
+                component_types.append((mapped_type, mapped_type))
 
         resistor_labels = sorted(set(re.findall(r"\bR[\d]\b", question_text)))
         if resistor_labels:

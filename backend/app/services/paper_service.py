@@ -25,13 +25,15 @@ import random
 import re
 from dataclasses import dataclass, field, replace
 
-from app.core.exceptions import GeminiServiceError
+from app.core.exceptions import GeminiServiceError, OpenRouterServiceError
 from app.models.enums import DifficultyLevel, DiagramType, QuestionSource, QuestionType
 from app.models.requests import GeneratePaperRequest
+from app.services import local_question_generator
 from app.services.allocation import allocate_largest_remainder
 from app.services.book_service import BookService
 from app.services.diagram_service import DiagramService
 from app.services.gemini_service import GeminiService
+from app.services.openrouter_service import OpenRouterService
 from app.services.question_service import TYPE_MARKS_MAP, QuestionService
 
 logger = logging.getLogger(__name__)
@@ -81,6 +83,8 @@ class QuestionDraft:
     concept: str | None = None
     requires_diagram: bool = False
     diagram_type: DiagramType = "none"
+    diagram_entities: list[str] = field(default_factory=list)
+    diagram_scenario: str | None = None
 
 
 @dataclass(frozen=True)
@@ -173,11 +177,13 @@ class PaperService:
         question_service: QuestionService,
         book_service: BookService,
         gemini_service: GeminiService,
+        openrouter_service: OpenRouterService,
         diagram_service: DiagramService,
     ) -> None:
         self._question_service = question_service
         self._book_service = book_service
         self._gemini_service = gemini_service
+        self._openrouter_service = openrouter_service
         self._diagram_service = diagram_service
 
     def generate(
@@ -331,7 +337,7 @@ class PaperService:
         diagram_type_hint = slot.diagram_hint if require_diagram else None
 
         try:
-            generated = self._gemini_service.generate_question(
+            generated = self._openrouter_service.generate_question(
                 chapter=slot.chapter,
                 difficulty=difficulty,
                 marks=slot.marks,
@@ -340,20 +346,35 @@ class PaperService:
                 require_diagram=require_diagram,
                 diagram_type_hint=diagram_type_hint,
             )
-        except GeminiServiceError as exc:
-            logger.error(
-                "Gemini generation failed for chapter='%s' type=%s; using placeholder question. %s",
+        except OpenRouterServiceError as exc:
+            logger.warning(
+                "OpenRouter generation failed for chapter='%s' type=%s; falling back to Gemini. %s",
                 slot.chapter, slot.question_type, exc.message,
             )
-            generated = self._gemini_service.build_placeholder_question(
-                chapter=slot.chapter,
-                difficulty=difficulty,
-                marks=slot.marks,
-                question_type=slot.question_type,
-                context=excerpt,
-                require_diagram=require_diagram,
-                diagram_type_hint=diagram_type_hint,
-            )
+            try:
+                generated = self._gemini_service.generate_question(
+                    chapter=slot.chapter,
+                    difficulty=difficulty,
+                    marks=slot.marks,
+                    question_type=slot.question_type,
+                    context=excerpt,
+                    require_diagram=require_diagram,
+                    diagram_type_hint=diagram_type_hint,
+                )
+            except GeminiServiceError as exc2:
+                logger.warning(
+                    "Gemini generation failed for chapter='%s' type=%s; using local generator. %s",
+                    slot.chapter, slot.question_type, exc2.message,
+                )
+                generated = local_question_generator.generate(
+                    chapter=slot.chapter,
+                    difficulty=difficulty,
+                    marks=slot.marks,
+                    question_type=slot.question_type,
+                    context=excerpt,
+                    require_diagram=require_diagram,
+                    diagram_type_hint=diagram_type_hint,
+                )
 
         if include_diagrams:
             detection = self._diagram_service.detect(generated["question"])
@@ -374,6 +395,8 @@ class PaperService:
             concept=generated.get("concept"),
             requires_diagram=requires_diagram,
             diagram_type=diagram_type,
+            diagram_entities=generated.get("diagram_entities", []) if requires_diagram else [],
+            diagram_scenario=generated.get("diagram_scenario") if requires_diagram else None,
         )
 
     @staticmethod

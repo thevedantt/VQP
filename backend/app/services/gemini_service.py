@@ -2,9 +2,13 @@
 
 Generates new, CBSE-style Physics questions grounded in an NCERT excerpt.
 Requests strict JSON output from Gemini and validates/repairs the response
-shape before handing it back to the paper service. Falls back to a clearly
-labeled offline "stub" question when ``GEMINI_API_KEY`` is not configured,
-so the rest of the pipeline remains runnable without external credentials.
+shape before handing it back to the paper service.
+
+Acts as the **secondary** fallback in the AI generation cascade (after
+OpenRouter GPT-4o, before the local template generator). When
+``GEMINI_API_KEY`` is not configured, or the API fails after all retries,
+``generate_question`` raises ``GeminiServiceError`` so the caller can fall
+through to the next tier.
 """
 
 from __future__ import annotations
@@ -19,96 +23,9 @@ from google.genai import types as genai_types
 
 from app.core.exceptions import GeminiServiceError
 from app.models.enums import DifficultyLevel, DiagramType, QuestionType
-from app.services.question_service import TYPE_MARKS_MAP
+from app.services.prompt_builder import build_question_prompt, normalize_question_response
 
 logger = logging.getLogger(__name__)
-
-_MCQ_TYPES = {"MCQ", "Assertion Reason"}
-
-# Explicit, diagram-detector-friendly instructions used to steer Gemini toward
-# producing a question that naturally requires the given diagram type. Each
-# phrase intentionally contains the exact wording the heuristic classifier in
-# diagram_service.py looks for (e.g. "free body diagram", "circuit diagram"),
-# so detection succeeds even if Gemini only partially follows instructions.
-_DIAGRAM_PHRASES: dict[str, str] = {
-    "free_body": "Draw the free body diagram of the object, clearly labeling all the forces acting on it.",
-    "circuit": "Draw the circuit diagram for the given arrangement, clearly labeling all components.",
-    "ray_diagram": "Draw the ray diagram showing the formation of the image.",
-    "graph": "Draw the graph showing the variation described, with clearly labeled axes.",
-    "magnetic_field": "Sketch the magnetic field lines for the given configuration, clearly indicating their direction.",
-}
-
-
-def _build_prompt(
-    chapter: str,
-    difficulty: DifficultyLevel,
-    marks: int,
-    question_type: QuestionType,
-    context: str,
-    require_diagram: bool = False,
-    diagram_type_hint: DiagramType | None = None,
-) -> str:
-    type_instructions = {
-        "MCQ": (
-            "Write a single multiple-choice question with exactly four options "
-            'labeled "A", "B", "C", "D" in the "options" object. Exactly one option must be correct.'
-        ),
-        "Assertion Reason": (
-            "Write an Assertion-Reason question. The 'question' field must contain an "
-            "'Assertion (A):' statement followed by a 'Reason (R):' statement. Provide the "
-            "standard CBSE four-option set in 'options' (A: both A and R are true and R is the "
-            "correct explanation of A; B: both A and R are true but R is not the correct "
-            "explanation of A; C: A is true but R is false; D: A is false but R is true)."
-        ),
-        "VSA": "Write a Very Short Answer question that can be answered in 1-2 sentences or a short calculation.",
-        "SA": "Write a Short Answer question that requires a brief explanation and/or a short derivation or numerical.",
-        "LA": "Write a Long Answer question that requires a detailed derivation, explanation, or multi-part numerical solution.",
-        "Case Study": (
-            "Write a Case Study question: a short passage (2-4 sentences) describing a real-world "
-            "or experimental scenario grounded in the NCERT content, followed by 2-3 sub-questions "
-            "labeled (i), (ii), (iii) based on that passage."
-        ),
-    }.get(question_type, "Write a question appropriate for the given marks and difficulty.")
-
-    diagram_instruction = ""
-    if require_diagram and diagram_type_hint and diagram_type_hint != "none":
-        phrase = _DIAGRAM_PHRASES.get(diagram_type_hint, "")
-        diagram_instruction = f"""
-- This question MUST require the student to draw a diagram. Include the following
-  instruction verbatim as part of the "question" text: "{phrase}"
-- Describe a specific, concrete scenario (the objects, forces, circuit components,
-  optical setup, or quantities involved) so the diagram is meaningful and can be
-  drawn directly from the question text."""
-
-    return f"""You are an expert CBSE Class 12 Physics paper setter.
-
-Using ONLY the NCERT textbook excerpt below as grounding material, write ONE brand-new
-{difficulty}-difficulty question for the chapter "{chapter}" worth {marks} mark(s).
-
-Requirements:
-- {type_instructions}
-- The question must be original CBSE-board-exam style wording. Do not copy sentences verbatim
-  from the excerpt; rephrase and apply the concepts.
-- The question must be solvable using only the concepts present in the excerpt.
-- Keep the "question" field self-contained (include any numerical data needed to solve it).{diagram_instruction}
-
-NCERT excerpt:
-\"\"\"
-{context}
-\"\"\"
-
-Respond with ONLY a JSON object matching this schema (no markdown, no commentary):
-{{
-  "question": "<full question text>",
-  "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
-  "marks": {marks},
-  "chapter": "{chapter}",
-  "type": "{question_type}",
-  "concept": "<short concept name this question tests>"
-}}
-
-If the question type does not require options, return "options" as an empty object {{}}.
-"""
 
 
 class GeminiService:
@@ -137,8 +54,7 @@ class GeminiService:
         else:
             self._client = None
             logger.warning(
-                "GEMINI_API_KEY is not configured - GeminiService will return offline "
-                "placeholder questions instead of calling the Gemini API."
+                "GEMINI_API_KEY is not configured - GeminiService is unavailable as a fallback tier."
             )
 
     @property
@@ -162,12 +78,15 @@ class GeminiService:
         When ``require_diagram`` is True, the prompt is steered so the
         generated question explicitly requires a diagram of
         ``diagram_type_hint`` (e.g. "Draw the free body diagram...").
+
+        Raises ``GeminiServiceError`` if not configured or if generation
+        fails after all retries.
         """
 
         if not self._enabled:
-            return self.build_placeholder_question(chapter, difficulty, marks, question_type, context, require_diagram, diagram_type_hint)
+            raise GeminiServiceError("Gemini is not configured (GEMINI_API_KEY missing).")
 
-        prompt = _build_prompt(chapter, difficulty, marks, question_type, context, require_diagram, diagram_type_hint)
+        prompt = build_question_prompt(chapter, difficulty, marks, question_type, context, require_diagram, diagram_type_hint)
         last_error: Exception | None = None
 
         for attempt in range(1, self._max_retries + 1):
@@ -181,7 +100,7 @@ class GeminiService:
                     ),
                 )
                 data = json.loads(response.text)
-                return self._normalize_question(data, chapter, difficulty, marks, question_type)
+                return normalize_question_response(data, chapter, difficulty, marks, question_type, diagram_type_hint)
             except (json.JSONDecodeError, KeyError, ValueError, AttributeError) as exc:
                 last_error = exc
                 logger.warning(
@@ -204,71 +123,27 @@ class GeminiService:
             detail=str(last_error),
         )
 
-    @staticmethod
-    def _normalize_question(
-        data: dict[str, Any],
-        chapter: str,
-        difficulty: DifficultyLevel,
-        marks: int,
-        question_type: QuestionType,
-    ) -> dict[str, Any]:
-        question_text = (data.get("question") or "").strip()
-        if not question_text:
-            raise ValueError("Gemini response is missing a non-empty 'question' field.")
+    def extract_concept(self, question_text: str) -> dict[str, Any] | None:
+        """Best-effort single-attempt concept/diagram extraction. Returns ``None`` on any failure."""
 
-        options = data.get("options") or {}
-        if not isinstance(options, dict):
-            options = {}
-        if question_type not in _MCQ_TYPES:
-            options = {}
+        if not self._enabled:
+            return None
 
-        return {
-            "question": question_text,
-            "options": {str(k): str(v) for k, v in options.items()},
-            "marks": int(data.get("marks") or marks),
-            "chapter": data.get("chapter") or chapter,
-            "type": question_type,
-            "difficulty": difficulty,
-            "concept": data.get("concept"),
-        }
+        from app.services.prompt_builder import build_concept_extraction_prompt
 
-    @staticmethod
-    def build_placeholder_question(
-        chapter: str,
-        difficulty: DifficultyLevel,
-        marks: int,
-        question_type: QuestionType,
-        context: str,
-        require_diagram: bool = False,
-        diagram_type_hint: DiagramType | None = None,
-    ) -> dict[str, Any]:
-        """Return a deterministic offline placeholder question.
-
-        Used both when no Gemini API key is configured, and as a graceful
-        fallback when the Gemini API fails after all retries (e.g. quota
-        exhaustion) so a single failed slot does not fail the whole paper.
-        """
-
-        excerpt_preview = " ".join(context.split())[:160]
-        question_text = (
-            f"[AI-generated placeholder - Gemini unavailable] "
-            f"Based on the NCERT topic '{chapter}' ({excerpt_preview}...), answer the following "
-            f"{difficulty} {marks}-mark question."
-        )
-
-        if require_diagram and diagram_type_hint and diagram_type_hint != "none":
-            question_text += " " + _DIAGRAM_PHRASES.get(diagram_type_hint, "")
-
-        options: dict[str, str] = {}
-        if question_type in _MCQ_TYPES:
-            options = {"A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D"}
-
-        return {
-            "question": question_text,
-            "options": options,
-            "marks": marks or TYPE_MARKS_MAP.get(question_type, 1),
-            "chapter": chapter,
-            "type": question_type,
-            "difficulty": difficulty,
-            "concept": None,
-        }
+        try:
+            response = self._client.models.generate_content(
+                model=self._model_name,
+                contents=build_concept_extraction_prompt(question_text),
+                config=genai_types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.2,
+                ),
+            )
+            data = json.loads(response.text)
+            if not isinstance(data, dict):
+                return None
+            return data
+        except Exception as exc:  # pragma: no cover - best-effort enrichment
+            logger.warning("Gemini concept extraction failed: %s", exc)
+            return None
