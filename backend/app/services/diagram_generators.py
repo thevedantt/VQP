@@ -259,6 +259,8 @@ class CircuitDiagramGenerator:
             "metadata": {
                 "layout": "wheatstone_bridge" if is_bridge else "series_parallel",
                 "component_count": len(components),
+                "entities": entities or [],
+                "scenario": scenario,
             },
         }
 
@@ -277,22 +279,23 @@ class GraphDiagramGenerator:
     """Builds a labeled axes + curve specification for variation-type questions."""
 
     @classmethod
-    def generate(cls, question_text: str) -> dict[str, Any]:
+    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
         text = question_text.lower()
+        hint_text = " ".join([text, (scenario or "").lower(), " ".join(entities or []).lower()])
 
         for keywords, x_label, x_unit, y_label, y_unit in _GRAPH_AXIS_PRESETS:
-            if all(keyword in text for keyword in keywords):
+            if all(keyword in hint_text for keyword in keywords):
                 break
         else:
             x_label, x_unit, y_label, y_unit = "Independent Variable", "", "Dependent Variable", ""
 
         curve_type = "linear"
-        if _contains_any(text, ["exponential", "decay", "charging", "discharging"]):
+        if _contains_any(hint_text, ["exponential", "decay", "charging", "discharging"]):
             curve_type = "exponential"
-        elif _contains_any(text, ["non-linear", "nonlinear", "diode", "characteristic"]):
+        elif _contains_any(hint_text, ["non-linear", "nonlinear", "diode", "characteristic"]):
             curve_type = "non_linear"
 
-        decaying = _contains_any(text, ["discharging", "decay"])
+        decaying = _contains_any(hint_text, ["discharging", "decay"])
 
         origin = (100.0, 350.0)
         x_end = (750.0, 350.0)
@@ -339,6 +342,8 @@ class GraphDiagramGenerator:
                 "x_axis": {"label": x_label, "unit": x_unit},
                 "y_axis": {"label": y_label, "unit": y_unit},
                 "curve_type": curve_type,
+                "entities": entities or [],
+                "scenario": scenario,
             },
         }
 
@@ -354,20 +359,29 @@ _RAY_OPTICAL_ELEMENTS: list[tuple[str, str, str]] = [
     ("prism", "prism", "convex_lens"),
 ]
 
+# Maps a slugified optical element name (as might appear in a concept-extraction
+# ``scenario``) directly to its render type, bypassing phrase search.
+_ELEMENT_TO_RENDER: dict[str, str] = {_slugify(element): render for _, element, render in _RAY_OPTICAL_ELEMENTS}
+
 
 class RayDiagramGenerator:
     """Builds a principal-axis + optical element + object/image ray diagram."""
 
     @classmethod
-    def generate(cls, question_text: str) -> dict[str, Any]:
+    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
         text = question_text.lower()
 
         optical_element = "convex_lens"
         render_type = "convex_lens"
-        for phrase, element, render in _RAY_OPTICAL_ELEMENTS:
-            if phrase in text:
-                optical_element, render_type = element, render
-                break
+
+        scenario_key = _slugify(scenario) if scenario else ""
+        if scenario_key in _ELEMENT_TO_RENDER:
+            optical_element, render_type = scenario_key, _ELEMENT_TO_RENDER[scenario_key]
+        else:
+            for phrase, element, render in _RAY_OPTICAL_ELEMENTS:
+                if phrase in text:
+                    optical_element, render_type = element, render
+                    break
 
         axis_y = 200.0
         element_x = 420.0
@@ -432,7 +446,7 @@ class RayDiagramGenerator:
             "components": components,
             "connections": [],
             "labels": [],
-            "metadata": {"optical_element": optical_element},
+            "metadata": {"optical_element": optical_element, "entities": entities or [], "scenario": scenario},
         }
 
 
@@ -449,7 +463,7 @@ class MagneticFieldDiagramGenerator:
     """Builds a magnetic field-line specification for a given field source."""
 
     @classmethod
-    def generate(cls, question_text: str) -> dict[str, Any]:
+    def generate(cls, question_text: str, entities: list[str] | None = None, scenario: str | None = None) -> dict[str, Any]:
         text = question_text.lower()
 
         source = "straight_wire"
@@ -493,7 +507,7 @@ class MagneticFieldDiagramGenerator:
             "components": components,
             "connections": [],
             "labels": labels,
-            "metadata": {"source": source},
+            "metadata": {"source": source, "entities": entities or [], "scenario": scenario},
         }
 
 

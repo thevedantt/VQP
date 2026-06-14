@@ -95,7 +95,12 @@ class PaperGenerationOrchestrator:
         diagram_id: str | None = None
 
         if draft.requires_diagram:
-            diagram = self._diagram_service.build_diagram(draft.diagram_type, draft.question)
+            diagram = self._diagram_service.build_diagram(
+                draft.diagram_type,
+                draft.question,
+                entities=draft.diagram_entities,
+                scenario=draft.diagram_scenario,
+            )
             diagram_id = f"DIAG_{draft.question_id}"
             diagrams_out.append(
                 DiagramSpec(

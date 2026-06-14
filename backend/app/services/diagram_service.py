@@ -201,7 +201,12 @@ class DiagramService:
         )
 
     @staticmethod
-    def generate_specification(diagram_type: DiagramType, question_text: str) -> dict:
+    def generate_specification(
+        diagram_type: DiagramType,
+        question_text: str,
+        entities: list[str] | None = None,
+        scenario: str | None = None,
+    ) -> dict:
         """Generate a JSON diagram specification for the given type and question."""
 
         generator = DIAGRAM_GENERATORS.get(diagram_type)
@@ -210,13 +215,19 @@ class DiagramService:
                 f"Cannot generate a specification for diagram_type='{diagram_type}'.",
                 detail=f"Supported types: {sorted(DIAGRAM_GENERATORS)}",
             )
-        return generator(question_text)
+        return generator(question_text, entities=entities, scenario=scenario)
 
     @classmethod
-    def build_diagram(cls, diagram_type: DiagramType, question_text: str) -> dict:
+    def build_diagram(
+        cls,
+        diagram_type: DiagramType,
+        question_text: str,
+        entities: list[str] | None = None,
+        scenario: str | None = None,
+    ) -> dict:
         """Generate a full diagram payload: ``{diagram_type, specification, svg}``."""
 
-        specification = cls.generate_specification(diagram_type, question_text)
+        specification = cls.generate_specification(diagram_type, question_text, entities=entities, scenario=scenario)
         return {
             "diagram_type": diagram_type,
             "specification": specification,

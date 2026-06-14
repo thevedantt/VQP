@@ -14,8 +14,9 @@ google-genai
 pypdf
 pymupdf
 
-# Diagram rendering utilities (reserved for future diagram rendering)
+# Diagram rendering utilities
 matplotlib
+schemdraw
 graphviz
 
 # Templating (reserved for future PDF/report export)
