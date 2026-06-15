@@ -91,6 +91,7 @@ def get_physics_analyzer_service() -> PhysicsAnalyzerService:
         get_gemini_service(),
         get_diagram_service(),
         get_diagram_taxonomy_service(),
+        get_diagram_template_service(),
     )
 
 

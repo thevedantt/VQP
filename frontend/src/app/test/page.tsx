@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, analyzeDiagram } from "@/lib/api";
-import type { AnalyzeDiagramResponse } from "@/lib/types";
+import type { AnalyzeDiagramResponse, UnderstandingLayer } from "@/lib/types";
 
 const EXAMPLE_QUESTION =
   "Draw the ray diagram of a convex lens with object between F and 2F.";
@@ -27,6 +27,79 @@ function JsonPanel({ title, data }: { title: string; data: unknown }) {
         <pre className="max-h-96 overflow-auto rounded-lg border border-border bg-muted/30 p-3 text-xs whitespace-pre-wrap break-words">
           {JSON.stringify(data, null, 2)}
         </pre>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ListField({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div>
+      <p className="font-medium text-foreground">{label}</p>
+      {items.length > 0 ? (
+        <ul className="list-disc space-y-0.5 pl-5 text-muted-foreground">
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-muted-foreground">—</p>
+      )}
+    </div>
+  );
+}
+
+function UnderstandingPanel({
+  understanding,
+}: {
+  understanding: UnderstandingLayer;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Understanding Layer</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 text-sm">
+        <div>
+          <p className="font-medium text-foreground">
+            What is the question asking?
+          </p>
+          <p className="text-muted-foreground">
+            {understanding.what_is_the_question_asking || "—"}
+          </p>
+        </div>
+        <div>
+          <p className="font-medium text-foreground">
+            What physics concept is involved?
+          </p>
+          <p className="text-muted-foreground">
+            {understanding.what_physics_concept_is_involved || "—"}
+          </p>
+        </div>
+        <div>
+          <p className="font-medium text-foreground">
+            Why is a diagram required?
+          </p>
+          <p className="text-muted-foreground">
+            {understanding.why_is_a_diagram_required || "—"}
+          </p>
+        </div>
+        <ListField
+          label="What must be visible"
+          items={understanding.what_must_be_visible}
+        />
+        <ListField
+          label="What labels must be present"
+          items={understanding.what_labels_must_be_present}
+        />
+        <div>
+          <p className="font-medium text-foreground">
+            What does the examiner expect to see?
+          </p>
+          <p className="text-muted-foreground">
+            {understanding.what_examiner_expects_to_see || "—"}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
@@ -61,8 +134,9 @@ export default function TestPlaygroundPage() {
             Diagram Intelligence Playground
           </h1>
           <p className="text-sm text-muted-foreground">
-            Inspect every stage of the Physics Analyzer → Template Selection
-            → Schema Population → SVG pipeline.
+            Inspect every stage of the Question → Understanding Layer →
+            Semantic Schema → Template Selection → Render Schema → Final
+            Diagram pipeline.
           </p>
         </div>
       </header>
@@ -91,14 +165,14 @@ export default function TestPlaygroundPage() {
 
         {result && (
           <>
-            <JsonPanel title="Physics Analysis" data={result.physics_analysis} />
-            <JsonPanel title="Template Selected" data={result.selected_template} />
+            <UnderstandingPanel understanding={result.understanding} />
             <JsonPanel title="Semantic Schema" data={result.semantic_schema} />
+            <JsonPanel title="Template Selected" data={result.selected_template} />
             <JsonPanel title="Render Schema" data={result.render_schema} />
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Rendered SVG</CardTitle>
+                <CardTitle className="text-sm">Final Diagram</CardTitle>
               </CardHeader>
               <CardContent>
                 {result.svg ? (

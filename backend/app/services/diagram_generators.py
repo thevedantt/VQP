@@ -900,7 +900,7 @@ class MagneticFieldDiagramGenerator:
             "components": components,
             "connections": [],
             "labels": labels,
-            "metadata": {"source": source, "entities": entities or [], "scenario": scenario},
+            "metadata": {"source": source, "entities": entities or [], "scenario": scenario, "extra": extra},
         }
 
 

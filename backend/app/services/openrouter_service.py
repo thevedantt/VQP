@@ -73,19 +73,23 @@ class OpenRouterService:
 
         return self._enabled
 
-    def _chat_completion(self, prompt: str, temperature: float) -> str:
-        response = self._client.post(
-            "/chat/completions",
-            json={
-                "model": self._model_name,
-                "messages": [{"role": "user", "content": prompt}],
-                "response_format": {"type": "json_object"},
-                "temperature": temperature,
-            },
-        )
+    def _chat_completion(self, prompt: str, temperature: float, reasoning: bool = False) -> str:
+        body: dict[str, Any] = {
+            "model": self._model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "response_format": {"type": "json_object"},
+            "temperature": temperature,
+        }
+        if reasoning:
+            body["reasoning"] = {"enabled": True}
+
+        response = self._client.post("/chat/completions", json=body)
         response.raise_for_status()
         payload = response.json()
-        return payload["choices"][0]["message"]["content"]
+        message = payload["choices"][0]["message"]
+        if reasoning and message.get("reasoning"):
+            logger.debug("OpenRouter reasoning trace: %s", message["reasoning"])
+        return message["content"]
 
     def generate_question(
         self,
@@ -161,7 +165,9 @@ class OpenRouterService:
             return None
 
         try:
-            content = self._chat_completion(build_physics_analysis_prompt(question_text, vocabulary), temperature=0.2)
+            content = self._chat_completion(
+                build_physics_analysis_prompt(question_text, vocabulary), temperature=0.2, reasoning=True
+            )
             data = json.loads(content)
             if not isinstance(data, dict):
                 return None

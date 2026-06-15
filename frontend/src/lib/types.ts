@@ -113,6 +113,16 @@ export interface AnalyzeDiagramRequest {
   question: string;
 }
 
+/** The human-readable "did the model understand the question" inspection layer. */
+export interface UnderstandingLayer {
+  what_is_the_question_asking: string;
+  what_physics_concept_is_involved: string;
+  why_is_a_diagram_required: string;
+  what_must_be_visible: string[];
+  what_labels_must_be_present: string[];
+  what_examiner_expects_to_see: string;
+}
+
 /** The ONLY information the LLM layer is allowed to produce - no coordinates/geometry. */
 export interface PhysicsAnalysis {
   diagram_required: boolean;
@@ -120,13 +130,21 @@ export interface PhysicsAnalysis {
   chapter: string | null;
   concept: string | null;
   scenario: string | null;
-  entities: string[];
   confidence: number;
+  candidate_concepts: string[];
+  required_entities: string[];
+  relationships: string[];
+  constraints: string[];
+  visual_rules: string[];
+  validation: string[];
+  understanding: UnderstandingLayer;
+  extra: Record<string, unknown>;
 }
 
 export interface AnalyzeDiagramResponse {
   question: string;
   physics_analysis: PhysicsAnalysis;
+  understanding: UnderstandingLayer;
   selected_template: Record<string, unknown>;
   semantic_schema: Record<string, unknown>;
   render_schema: Record<string, unknown>;

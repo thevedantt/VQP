@@ -108,8 +108,20 @@ class GenerateDiagramResponse(BaseModel):
     svg: str = ""
 
 
+class UnderstandingModel(BaseModel):
+    """Mirrors ``PhysicsAnalyzerService.UnderstandingLayer`` - the human-readable
+    "did the model understand the question" inspection layer."""
+
+    what_is_the_question_asking: str = ""
+    what_physics_concept_is_involved: str = ""
+    why_is_a_diagram_required: str = ""
+    what_must_be_visible: list[str] = Field(default_factory=list)
+    what_labels_must_be_present: list[str] = Field(default_factory=list)
+    what_examiner_expects_to_see: str = ""
+
+
 class PhysicsAnalysisModel(BaseModel):
-    """Mirrors ``PhysicsAnalysisService.PhysicsAnalysis`` - the ONLY information
+    """Mirrors ``PhysicsAnalyzerService.PhysicsAnalysis`` - the ONLY information
     an LLM is allowed to produce about a diagram (no coordinates/geometry)."""
 
     diagram_required: bool
@@ -117,20 +129,28 @@ class PhysicsAnalysisModel(BaseModel):
     chapter: str | None = None
     concept: str | None = None
     scenario: str | None = None
-    entities: list[str] = Field(default_factory=list)
     confidence: float = Field(ge=0.0, le=1.0, default=0.0)
+    candidate_concepts: list[str] = Field(default_factory=list)
+    required_entities: list[str] = Field(default_factory=list)
+    relationships: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    visual_rules: list[str] = Field(default_factory=list)
+    validation: list[str] = Field(default_factory=list)
+    understanding: UnderstandingModel = Field(default_factory=UnderstandingModel)
+    extra: dict[str, Any] = Field(default_factory=dict)
 
 
 class AnalyzeDiagramResponse(BaseModel):
     """Output payload for POST /api/debug/analyze-diagram.
 
-    Exposes every intermediate artifact of the
-    Question -> PhysicsAnalyzer -> Template Selection -> SchemaPopulation -> SVG
-    pipeline for debugging/inspection.
+    Exposes every stage of the
+    Question -> Understanding Layer -> Semantic Schema -> Template Selection
+    -> Render Schema -> Final Diagram pipeline for debugging/inspection.
     """
 
     question: str
     physics_analysis: PhysicsAnalysisModel
+    understanding: UnderstandingModel
     selected_template: dict[str, Any]
     semantic_schema: dict[str, Any]
     render_schema: dict[str, Any]
