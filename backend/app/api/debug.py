@@ -1,7 +1,8 @@
-"""Debug endpoint exposing every intermediate artifact of the Physics Semantic
-Diagram Intelligence pipeline:
+"""Debug endpoint exposing every stage of the Dynamic Physics Semantic Schema
+pipeline:
 
-    Question -> PhysicsAnalyzer -> Template Selection -> Schema Population -> SVG
+    Question -> Understanding Layer -> Semantic Schema -> Template Selection
+             -> Render Schema -> Final Diagram
 
 Additive only - does not affect ``/api/generate-paper`` or ``/api/generate-diagram``.
 """
@@ -41,12 +42,14 @@ def analyze_diagram(
     analysis = physics_analyzer.analyze(request.question)
     template_id, template = template_service.select(analysis.diagram_type, analysis.concept, analysis.scenario)
     semantic_schema = schema_service.build_semantic_schema(analysis, template_id, template)
-    render_schema = schema_service.build_render_schema(semantic_schema, request.question)
+    render_schema = schema_service.build_render_schema(semantic_schema, request.question, template)
     svg = render_svg(render_schema)
 
+    analysis_dict = asdict(analysis)
     return AnalyzeDiagramResponse(
         question=request.question,
-        physics_analysis=PhysicsAnalysisModel(**asdict(analysis)),
+        physics_analysis=PhysicsAnalysisModel(**analysis_dict),
+        understanding=analysis_dict["understanding"],
         selected_template=template,
         semantic_schema=semantic_schema,
         render_schema=render_schema,
