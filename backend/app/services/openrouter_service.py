@@ -23,7 +23,6 @@ import httpx
 from app.core.exceptions import OpenRouterServiceError
 from app.models.enums import DifficultyLevel, DiagramType, QuestionType
 from app.services.prompt_builder import (
-    build_concept_extraction_prompt,
     build_physics_analysis_prompt,
     build_question_prompt,
     normalize_question_response,
@@ -81,7 +80,12 @@ class OpenRouterService:
             "temperature": temperature,
         }
         if reasoning:
-            body["reasoning"] = {"enabled": True}
+            # Cap the reasoning budget so the model still has room left in
+            # max_tokens to emit the actual JSON content - otherwise gpt-oss
+            # models can spend the whole completion on reasoning and return
+            # an empty `content`.
+            body["reasoning"] = {"enabled": True, "max_tokens": 400}
+            body["max_tokens"] = 4096
 
         response = self._client.post("/chat/completions", json=body)
         response.raise_for_status()
@@ -137,22 +141,6 @@ class OpenRouterService:
             f"after {self._max_retries} attempt(s).",
             detail=str(last_error),
         )
-
-    def extract_concept(self, question_text: str) -> dict[str, Any] | None:
-        """Best-effort single-attempt concept/diagram extraction. Returns ``None`` on any failure."""
-
-        if not self._enabled:
-            return None
-
-        try:
-            content = self._chat_completion(build_concept_extraction_prompt(question_text), temperature=0.2)
-            data = json.loads(content)
-            if not isinstance(data, dict):
-                return None
-            return data
-        except Exception as exc:  # pragma: no cover - best-effort enrichment
-            logger.warning("OpenRouter concept extraction failed: %s", exc)
-            return None
 
     def analyze_physics(self, question_text: str, vocabulary: str) -> dict[str, Any] | None:
         """Best-effort single-attempt physics understanding. Returns ``None`` on any failure.

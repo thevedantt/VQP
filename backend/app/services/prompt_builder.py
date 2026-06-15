@@ -164,34 +164,6 @@ def normalize_question_response(
     }
 
 
-def build_concept_extraction_prompt(question_text: str) -> str:
-    """Build a prompt asking an LLM to extract concept/diagram metadata from a question."""
-
-    diagram_types = ", ".join(sorted(_VALID_DIAGRAM_TYPES))
-    return f"""You are an expert CBSE Class 12 Physics paper analyst.
-
-Analyze the following question and identify its core concept and diagram requirements.
-
-Question:
-\"\"\"
-{question_text}
-\"\"\"
-
-Respond with ONLY a JSON object matching this schema (no markdown, no commentary):
-{{
-  "chapter": "<NCERT Class 12 Physics chapter name this question belongs to>",
-  "concept": "<short snake_case concept name, e.g. full_wave_rectifier>",
-  "diagram_type": "<one of: {diagram_types}>",
-  "scenario": "<short snake_case scenario name, or null if no diagram is needed>",
-  "entities": ["<diagram entity 1>", "<diagram entity 2>", "..."],
-  "confidence": <number between 0 and 1>
-}}
-
-If the question does not require a diagram, set "diagram_type" to "none", "scenario" to null,
-and "entities" to an empty array.
-"""
-
-
 def build_physics_analysis_prompt(question_text: str, vocabulary: str) -> str:
     """Build a prompt that turns the LLM into a "Physics Semantic Analyst".
 
