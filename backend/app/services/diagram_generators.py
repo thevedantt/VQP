@@ -852,10 +852,12 @@ class MagneticFieldDiagramGenerator:
         scenario: str | None = None,
         rules: dict[str, Any] | None = None,
         concept: str | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         text = question_text.lower()
+        extra = extra or {}
 
-        source = (rules or {}).get("source")
+        source = (rules or {}).get("source") or extra.get("source")
         if not source:
             source = "straight_wire"
             for keywords, source_type in _MAGNETIC_SOURCES:
