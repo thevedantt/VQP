@@ -60,8 +60,10 @@ class FreeBodyDiagramGenerator:
         scenario: str | None = None,
         rules: dict[str, Any] | None = None,
         concept: str | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         text = question_text.lower()
+        extra = extra or {}
 
         on_incline = _contains_any(text, ["incline", "inclined plane", "slope", "ramp"])
         has_friction = _contains_any(text, ["friction"])
@@ -72,6 +74,14 @@ class FreeBodyDiagramGenerator:
             if "on_incline" in rules:
                 on_incline = bool(rules["on_incline"])
             forces = set(rules.get("forces", []))
+            if forces:
+                has_friction = "friction" in forces
+                has_tension = "tension" in forces
+                has_applied_force = "applied_force" in forces
+        elif extra:
+            if "surface" in extra:
+                on_incline = extra.get("surface") == "inclined"
+            forces = set(extra.get("forces", []))
             if forces:
                 has_friction = "friction" in forces
                 has_tension = "tension" in forces
@@ -163,6 +173,7 @@ class FreeBodyDiagramGenerator:
                 "has_applied_force": has_applied_force,
                 "entities": entities or [],
                 "scenario": scenario,
+                "extra": extra,
             },
         }
 
@@ -211,12 +222,14 @@ class CircuitDiagramGenerator:
         scenario: str | None = None,
         rules: dict[str, Any] | None = None,
         concept: str | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         text = question_text.lower()
+        extra = extra or {}
         layout = (rules or {}).get("layout")
 
-        if layout == "full_wave_rectifier_center_tapped":
-            return cls._generate_full_wave_rectifier(entities, scenario)
+        if layout == "full_wave_rectifier_center_tapped" or (not rules and extra.get("rectifier_type")):
+            return cls._generate_full_wave_rectifier(entities, scenario, extra)
 
         component_types: list[tuple[str, str]] = []
         for component_type, keywords in _CIRCUIT_COMPONENT_KEYWORDS:
@@ -237,7 +250,11 @@ class CircuitDiagramGenerator:
         if not component_types:
             component_types = [("battery", "battery"), ("R1", "resistor")]
 
-        is_bridge = layout == "wheatstone_bridge" or _contains_any(text, ["wheatstone bridge", "meter bridge"])
+        is_bridge = (
+            layout == "wheatstone_bridge"
+            or extra.get("bridge_type") == "wheatstone"
+            or _contains_any(text, ["wheatstone bridge", "meter bridge"])
+        )
 
         components: list[dict[str, Any]] = []
         connections: list[dict[str, Any]] = []
@@ -288,11 +305,14 @@ class CircuitDiagramGenerator:
                 "component_count": len(components),
                 "entities": entities or [],
                 "scenario": scenario,
+                "extra": extra,
             },
         }
 
     @classmethod
-    def _generate_full_wave_rectifier(cls, entities: list[str] | None, scenario: str | None) -> dict[str, Any]:
+    def _generate_full_wave_rectifier(
+        cls, entities: list[str] | None, scenario: str | None, extra: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Center-tapped full-wave rectifier: transformer secondary -> D1/D2 -> shared
         output node -> load resistor RL -> back to the center tap."""
 
@@ -332,6 +352,7 @@ class CircuitDiagramGenerator:
                 "component_count": len(components),
                 "entities": entities or [],
                 "scenario": scenario,
+                "extra": extra or {},
             },
         }
 
@@ -345,6 +366,20 @@ _GRAPH_AXIS_PRESETS: list[tuple[list[str], str, str, str, str]] = [
     (["potential", "distance"], "Distance (x)", "m", "Electric Potential (V)", "V"),
 ]
 
+# Maps the categorical "curve_shape" values that may appear in a physics
+# analysis' ``extra`` block onto the curve-rendering ``curve_type`` values
+# understood by the geometry code below.
+_CURVE_SHAPE_MAP: dict[str, str] = {
+    "linear": "linear",
+    "linear_with_intercept": "linear_with_intercept",
+    "non_linear": "non_linear",
+    "saturation": "exponential_rise",
+    "exponential_rise": "exponential_rise",
+    "exponential_decay": "exponential_decay",
+    "decay": "exponential_decay",
+    "inverse_square": "non_linear",
+}
+
 
 class GraphDiagramGenerator:
     """Builds a labeled axes + curve specification for variation-type questions."""
@@ -357,13 +392,18 @@ class GraphDiagramGenerator:
         scenario: str | None = None,
         rules: dict[str, Any] | None = None,
         concept: str | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         text = question_text.lower()
+        extra = extra or {}
         hint_text = " ".join([text, (scenario or "").lower(), " ".join(entities or []).lower()])
 
         if rules and rules.get("x_label") and rules.get("y_label"):
             x_label, x_unit = rules["x_label"], rules.get("x_unit", "")
             y_label, y_unit = rules["y_label"], rules.get("y_unit", "")
+        elif extra.get("x_axis") and extra.get("y_axis"):
+            x_label, x_unit = str(extra["x_axis"]).replace("_", " ").title(), ""
+            y_label, y_unit = str(extra["y_axis"]).replace("_", " ").title(), ""
         else:
             for keywords, x_label, x_unit, y_label, y_unit in _GRAPH_AXIS_PRESETS:
                 if all(keyword in hint_text for keyword in keywords):
@@ -372,8 +412,11 @@ class GraphDiagramGenerator:
                 x_label, x_unit, y_label, y_unit = "Independent Variable", "", "Dependent Variable", ""
 
         rule_curve_type = (rules or {}).get("curve_type")
+        extra_curve_shape = extra.get("curve_shape")
         if rule_curve_type:
             curve_type = rule_curve_type
+        elif extra_curve_shape in _CURVE_SHAPE_MAP:
+            curve_type = _CURVE_SHAPE_MAP[extra_curve_shape]
         else:
             curve_type = "linear"
             if _contains_any(hint_text, ["exponential", "decay", "charging", "discharging"]):
@@ -430,9 +473,13 @@ class GraphDiagramGenerator:
             {"text": y_axis_text, "x": origin[0] - 60, "y": (origin[1] + y_end[1]) / 2, "anchor": "middle", "rotation": -90},
         ]
 
+        title = "Graph"
+        if extra.get("graph_type"):
+            title = str(extra["graph_type"]).replace("_", " ").title()
+
         return {
             "diagram_type": "graph",
-            "title": "Graph",
+            "title": title,
             "canvas": dict(_CANVAS),
             "components": components,
             "connections": [],
@@ -443,6 +490,7 @@ class GraphDiagramGenerator:
                 "curve_type": curve_type,
                 "entities": entities or [],
                 "scenario": scenario,
+                "extra": extra,
             },
         }
 
@@ -494,6 +542,45 @@ _SIZE_FACTORS: dict[str, float] = {
 _FOCAL_UNIT = 80.0
 _BASE_OBJECT_HEIGHT = 80.0
 
+_IMAGE_NATURE_VALUES = ("real", "virtual")
+_IMAGE_ORIENTATION_VALUES = ("erect", "inverted")
+
+
+def _rules_from_extra(extra: dict[str, Any]) -> dict[str, Any]:
+    """Build a synthetic ``rules`` dict from a physics analysis' ``extra`` block.
+
+    Used when no template-driven ``scenario_rules`` are available - parses
+    ``object_position`` and ``expected_image`` (e.g. ``"real_inverted_magnified"``)
+    into the categorical ``object_position``/``image_nature``/``orientation``/
+    ``size`` keys consumed by ``_generate_from_rules``.
+    """
+
+    rules: dict[str, Any] = {}
+
+    object_position = extra.get("object_position")
+    if isinstance(object_position, str) and object_position in _POSITION_OFFSET_UNITS:
+        rules["object_position"] = object_position
+
+    expected_image = extra.get("expected_image")
+    if isinstance(expected_image, str):
+        remaining = expected_image
+        for size in sorted(_SIZE_FACTORS, key=len, reverse=True):
+            if size in remaining:
+                rules["size"] = size
+                remaining = remaining.replace(size, "")
+                break
+        for nature in _IMAGE_NATURE_VALUES:
+            if nature in remaining:
+                rules["image_nature"] = nature
+                remaining = remaining.replace(nature, "")
+                break
+        for orientation in _IMAGE_ORIENTATION_VALUES:
+            if orientation in remaining:
+                rules["orientation"] = orientation
+                break
+
+    return rules
+
 
 class RayDiagramGenerator:
     """Builds a principal-axis + optical element + object/image ray diagram."""
@@ -506,14 +593,25 @@ class RayDiagramGenerator:
         scenario: str | None = None,
         rules: dict[str, Any] | None = None,
         concept: str | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         text = question_text.lower()
+        extra = extra or {}
 
         axis_y = 200.0
         element_x = 420.0
 
-        if rules:
+        effective_rules = rules or _rules_from_extra(extra)
+
+        if effective_rules:
             optical_element = concept or "convex_lens"
+            if optical_element not in _CONCEPT_TO_RENDER_TYPE:
+                lens_type = extra.get("lens_type")
+                mirror_type = extra.get("mirror_type")
+                if lens_type:
+                    optical_element = f"{lens_type}_lens"
+                elif mirror_type:
+                    optical_element = f"{mirror_type}_mirror"
             render_type = _CONCEPT_TO_RENDER_TYPE.get(optical_element, "convex_lens")
             components: list[dict[str, Any]] = [
                 {"id": "principal_axis", "type": "axis", "x1": 60, "y1": axis_y, "x2": 740, "y2": axis_y},
@@ -526,7 +624,7 @@ class RayDiagramGenerator:
                     "label": optical_element.replace("_", " ").title(),
                 },
             ]
-            labels, image_components = cls._generate_from_rules(rules, axis_y, element_x)
+            labels, image_components = cls._generate_from_rules(effective_rules, axis_y, element_x)
             components.extend(image_components)
 
             return {
@@ -536,7 +634,13 @@ class RayDiagramGenerator:
                 "components": components,
                 "connections": [],
                 "labels": labels,
-                "metadata": {"optical_element": optical_element, "entities": entities or [], "scenario": scenario, "rules": rules},
+                "metadata": {
+                    "optical_element": optical_element,
+                    "entities": entities or [],
+                    "scenario": scenario,
+                    "rules": effective_rules,
+                    "extra": extra,
+                },
             }
 
         # Legacy generic geometry (no physics-analyzer rules available).
@@ -612,7 +716,7 @@ class RayDiagramGenerator:
             "components": components,
             "connections": [],
             "labels": [],
-            "metadata": {"optical_element": optical_element, "entities": entities or [], "scenario": scenario},
+            "metadata": {"optical_element": optical_element, "entities": entities or [], "scenario": scenario, "extra": extra},
         }
 
     @classmethod
