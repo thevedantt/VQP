@@ -15,10 +15,13 @@ from uuid import uuid4
 
 from app.models.requests import GeneratePaperRequest
 from app.models.responses import DiagramCoverage, DiagramSpec, GeneratedPaperResponse, PaperSection, QuestionItem
-from app.services.concept_extraction_service import ConceptExtractionService
 from app.services.diagram_service import DiagramService
+from app.services.diagram_svg import render_svg
+from app.services.diagram_template_service import DiagramTemplateService
 from app.services.paper_evaluator import PaperEvaluator
 from app.services.paper_service import PaperService, QuestionDraft
+from app.services.physics_understanding_service import PhysicsUnderstandingService
+from app.services.schema_population_service import SchemaPopulationService
 from app.services.weightage_service import WeightageService
 
 logger = logging.getLogger(__name__)
@@ -78,13 +81,17 @@ class PaperGenerationOrchestrator:
         weightage_service: WeightageService,
         paper_service: PaperService,
         diagram_service: DiagramService,
-        concept_extraction_service: ConceptExtractionService,
+        physics_understanding_service: PhysicsUnderstandingService,
+        diagram_template_service: DiagramTemplateService,
+        schema_population_service: SchemaPopulationService,
         paper_evaluator: PaperEvaluator,
     ) -> None:
         self._weightage_service = weightage_service
         self._paper_service = paper_service
         self._diagram_service = diagram_service
-        self._concept_extraction_service = concept_extraction_service
+        self._physics_understanding_service = physics_understanding_service
+        self._diagram_template_service = diagram_template_service
+        self._schema_population_service = schema_population_service
         self._paper_evaluator = paper_evaluator
 
     def generate_paper(self, request: GeneratePaperRequest) -> GeneratedPaperResponse:
@@ -152,29 +159,39 @@ class PaperGenerationOrchestrator:
         diagram_id: str | None = None
 
         if draft.requires_diagram:
-            entities, scenario = draft.diagram_entities, draft.diagram_scenario
-            if draft.source == "ai" and not entities:
-                # The generation tier that filled this slot (Gemini or local)
-                # didn't return diagram entities/scenario inline - run a
-                # best-effort concept-extraction pass to enrich the diagram.
-                extraction = self._concept_extraction_service.extract(draft.question)
-                entities = extraction.entities or entities
-                scenario = extraction.scenario or scenario
+            # 1. PhysicsUnderstandingService
+            analysis = self._physics_understanding_service.analyze(draft.question)
+            
+            diagram_type = draft.diagram_type if draft.diagram_type != "none" else analysis.diagram_type
+            concept = analysis.concept or draft.concept
+            scenario = draft.diagram_scenario or analysis.scenario
 
-            diagram = self._diagram_service.build_diagram(
-                draft.diagram_type,
-                draft.question,
-                entities=entities,
-                scenario=scenario,
-            )
+            # 2. Template Selection
+            template_id, template = self._diagram_template_service.select(diagram_type, concept, scenario)
+
+            # 3. Dynamic Semantic Schema
+            semantic_schema = self._schema_population_service.build_semantic_schema(analysis, template_id, template)
+            if draft.diagram_entities:
+                semantic_schema["required_entities"] = list(set(semantic_schema["required_entities"] + draft.diagram_entities))
+            if scenario:
+                semantic_schema["scenario"] = scenario
+            if diagram_type:
+                semantic_schema["diagram_type"] = diagram_type
+
+            # 4. Render Schema
+            render_schema = self._schema_population_service.build_render_schema(semantic_schema, draft.question, template)
+
+            # 5. Renderer
+            svg = render_svg(render_schema)
+
             diagram_id = f"DIAG_{draft.question_id}"
             diagrams_out.append(
                 DiagramSpec(
                     diagram_id=diagram_id,
                     question_id=draft.question_id,
-                    diagram_type=diagram["diagram_type"],
-                    specification=diagram["specification"],
-                    svg=diagram["svg"],
+                    diagram_type=diagram_type,
+                    specification=render_schema,
+                    svg=svg,
                 )
             )
 
