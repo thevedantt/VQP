@@ -13,7 +13,7 @@ coordinates/geometry that ``diagram_svg.render_svg`` consumes.
 from __future__ import annotations
 
 from app.services.diagram_generators import DIAGRAM_GENERATORS
-from app.services.physics_analyzer_service import PhysicsAnalysis
+from app.services.physics_understanding_service import PhysicsAnalysis
 
 _EMPTY_CANVAS = {"width": 800, "height": 400}
 

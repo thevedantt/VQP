@@ -109,7 +109,7 @@ class GenerateDiagramResponse(BaseModel):
 
 
 class UnderstandingModel(BaseModel):
-    """Mirrors ``PhysicsAnalyzerService.UnderstandingLayer`` - the human-readable
+    """Mirrors ``PhysicsUnderstandingService.UnderstandingLayer`` - the human-readable
     "did the model understand the question" inspection layer."""
 
     what_is_the_question_asking: str = ""
@@ -121,7 +121,7 @@ class UnderstandingModel(BaseModel):
 
 
 class PhysicsAnalysisModel(BaseModel):
-    """Mirrors ``PhysicsAnalyzerService.PhysicsAnalysis`` - the ONLY information
+    """Mirrors ``PhysicsUnderstandingService.PhysicsAnalysis`` - the ONLY information
     an LLM is allowed to produce about a diagram (no coordinates/geometry)."""
 
     diagram_required: bool
