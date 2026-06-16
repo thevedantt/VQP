@@ -19,7 +19,7 @@ class PhysicsSolver:
 
         Returns a flat dict containing every parameter the renderer needs:
 
-            u              object distance (lens_x − object_x)  [px]
+            u              object distance (lens_x - object_x)  [px]
             f              focal length                         [px]
             v              image distance                       [px]
             magnification  linear magnification (v / u)

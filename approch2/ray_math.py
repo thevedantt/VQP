@@ -4,15 +4,16 @@ import math
 class RayMath:
     """Physics formula calculations for ray diagrams using the Cartesian sign convention.
 
-    Sign convention (Cartesian):
+    Sign convention:
       - All distances measured from the optical centre of the lens.
       - Distances in the direction of incident light (left to right) are positive.
       - Distances opposite the direction of incident light are negative.
       - Object distance u is always negative (object is to the left of the lens).
       - Focal length f of a convex lens is positive.
 
-    Lens formula:  1/f = 1/v - 1/u   →   1/v = 1/f + 1/u
+    Lens formula:  1/f = 1/v - 1/u   ->   1/v = 1/f + 1/u
     Magnification: m = v / u
+    Image height:  h' = |m| * h
     """
 
     def __init__(self, focal_length: float):
@@ -33,11 +34,11 @@ class RayMath:
         Returns:
             (v, m) where:
               v: image distance from optical centre.
-                 positive  → real image on opposite side (right of lens).
-                 negative  → virtual image on same side (left of lens).
+                 positive  -> real image on opposite side (right of lens).
+                 negative  -> virtual image on same side (left of lens).
               m: magnification = v / u.
-                 negative  → inverted image.
-                 positive  → erect image.
+                 negative  -> inverted image.
+                 positive  -> erect image.
         """
         if u == 0:
             return (0.0, 0.0)
@@ -49,7 +50,7 @@ class RayMath:
         return (v, m)
 
     # ------------------------------------------------------------------ #
-    #  Explicit calculation methods requested by spec
+    #  Explicit calculation methods
     # ------------------------------------------------------------------ #
 
     def calculate_image_distance(self, u: float) -> float:
@@ -63,9 +64,7 @@ class RayMath:
             return 0.0
         return v / u
 
-    def calculate_image_height(
-        self, object_height: float, magnification: float
-    ) -> float:
+    def calculate_image_height(self, object_height: float, magnification: float) -> float:
         """Return absolute image height in pixels."""
         return abs(magnification) * object_height
 
