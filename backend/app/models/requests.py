@@ -54,6 +54,12 @@ class GenerateDiagramRequest(BaseModel):
     question: str = Field(..., min_length=3, max_length=5000, description="Question text used to ground the diagram.")
 
 
+class DiagramRetrieveAndGenerateRequest(BaseModel):
+    """Input payload for POST /api/diagram/retrieve-and-generate."""
+
+    question: str = Field(..., min_length=3, max_length=5000, description="Physics question text for diagram retrieval and generation.")
+
+
 class AnalyzeDiagramRequest(BaseModel):
     """Input payload for POST /api/debug/analyze-diagram."""
 

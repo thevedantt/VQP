@@ -71,6 +71,7 @@ export interface DiagramSpec {
   diagram_type: DiagramType;
   specification: Record<string, unknown>;
   svg: string;
+  validation?: ValidationReport | null;
 }
 
 export interface DiagramCoverage {
@@ -135,18 +136,51 @@ export interface PhysicsAnalysis {
   required_entities: string[];
   relationships: string[];
   constraints: string[];
+  labels: string[];
+  geometry_rules: Record<string, unknown>;
   visual_rules: string[];
   validation: string[];
   understanding: UnderstandingLayer;
   extra: Record<string, unknown>;
+  textbook_context: NcertContext;
+}
+
+/** NCERT grounding context retrieved for the detected chapter/concept (Phase 2). */
+export interface NcertContext {
+  chapter: string;
+  topic: string;
+  description: string;
+  diagram_explanation: string;
+  expected_labels: string[];
+  important_points: string[];
+}
+
+/** Which specialized physics engine the DiagramRouter selected (Phase 4). */
+export interface GeneratorSelection {
+  engine: string;
+  diagram_type: DiagramType;
+  concept: string | null;
+  scenario: string | null;
+}
+
+/** Mirrors DiagramValidationService.validate() output (Phase 6). */
+export interface ValidationReport {
+  diagram_score: number;
+  missing_entities: string[];
+  missing_labels: string[];
+  warnings: string[];
 }
 
 export interface AnalyzeDiagramResponse {
   question: string;
   physics_analysis: PhysicsAnalysis;
   understanding: UnderstandingLayer;
+  ncert_context: NcertContext;
   selected_template: Record<string, unknown>;
   semantic_schema: Record<string, unknown>;
+  generator_selection: GeneratorSelection;
+  generator_input: Record<string, unknown>;
   render_schema: Record<string, unknown>;
+  validation_report: ValidationReport;
   svg: string;
 }

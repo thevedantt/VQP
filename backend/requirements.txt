@@ -18,6 +18,7 @@ pymupdf
 matplotlib
 schemdraw
 graphviz
+magpylib
 
 # Templating (reserved for future PDF/report export)
 jinja2

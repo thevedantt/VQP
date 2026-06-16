@@ -9,14 +9,18 @@ from functools import lru_cache
 
 from app.core.config import get_settings
 from app.services.book_service import BookService
+from app.services.diagram_retrieval_service import DiagramRetrievalService
+from app.services.diagram_router import DiagramRouter
 from app.services.diagram_service import DiagramService
 from app.services.diagram_taxonomy_service import DiagramTaxonomyService
 from app.services.diagram_template_service import DiagramTemplateService
+from app.services.schema_adaptation_service import SchemaAdaptationService
+from app.services.diagram_validation_service import DiagramValidationService
 from app.services.gemini_service import GeminiService
-from app.services.openrouter_service import OpenRouterService
 from app.services.orchestrator_service import PaperGenerationOrchestrator
 from app.services.paper_evaluator import PaperEvaluator
 from app.services.paper_service import PaperService
+from app.services.physics_knowledge_retriever import PhysicsKnowledgeRetriever
 from app.services.physics_understanding_service import PhysicsUnderstandingService
 from app.services.schema_population_service import SchemaPopulationService
 from app.services.question_service import QuestionService
@@ -54,20 +58,6 @@ def get_gemini_service() -> GeminiService:
 
 
 @lru_cache
-def get_openrouter_service() -> OpenRouterService:
-    settings = get_settings()
-    return OpenRouterService(
-        api_key=settings.openrouter_api_key,
-        model_name=settings.openrouter_model,
-        base_url=settings.openrouter_base_url,
-        max_retries=settings.openrouter_max_retries,
-        retry_backoff_seconds=settings.openrouter_retry_backoff_seconds,
-        request_timeout_seconds=settings.openrouter_request_timeout_seconds,
-    )
-
-
-@lru_cache
-@lru_cache
 def get_diagram_taxonomy_service() -> DiagramTaxonomyService:
     settings = get_settings()
     return DiagramTaxonomyService(settings.diagram_taxonomy_dir)
@@ -80,19 +70,34 @@ def get_diagram_template_service() -> DiagramTemplateService:
 
 
 @lru_cache
+def get_physics_knowledge_retriever() -> PhysicsKnowledgeRetriever:
+    return PhysicsKnowledgeRetriever(get_book_service(), get_diagram_taxonomy_service())
+
+
+@lru_cache
 def get_physics_understanding_service() -> PhysicsUnderstandingService:
     return PhysicsUnderstandingService(
-        get_openrouter_service(),
         get_gemini_service(),
         get_diagram_service(),
         get_diagram_taxonomy_service(),
         get_diagram_template_service(),
+        get_physics_knowledge_retriever(),
     )
 
 
 @lru_cache
 def get_schema_population_service() -> SchemaPopulationService:
     return SchemaPopulationService()
+
+
+@lru_cache
+def get_diagram_router() -> DiagramRouter:
+    return DiagramRouter()
+
+
+@lru_cache
+def get_diagram_validation_service() -> DiagramValidationService:
+    return DiagramValidationService()
 
 
 @lru_cache
@@ -111,9 +116,19 @@ def get_paper_service() -> PaperService:
         get_question_service(),
         get_book_service(),
         get_gemini_service(),
-        get_openrouter_service(),
         get_diagram_service(),
     )
+
+
+@lru_cache
+def get_diagram_retrieval_service() -> DiagramRetrievalService:
+    settings = get_settings()
+    return DiagramRetrievalService(settings.diagram_library_final_dir)
+
+
+@lru_cache
+def get_schema_adaptation_service() -> SchemaAdaptationService:
+    return SchemaAdaptationService()
 
 
 @lru_cache
@@ -126,4 +141,6 @@ def get_orchestrator() -> PaperGenerationOrchestrator:
         get_diagram_template_service(),
         get_schema_population_service(),
         get_paper_evaluator(),
+        get_diagram_router(),
+        get_diagram_validation_service(),
     )

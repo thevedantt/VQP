@@ -1,8 +1,7 @@
 """Shared prompt construction and response normalization for AI question generation.
 
-Used by both ``OpenRouterService`` (primary) and ``GeminiService`` (secondary
-fallback) so the two providers are prompted identically and their JSON
-responses are normalized into the same shape consumed by ``paper_service.py``.
+Used by ``GeminiService`` so prompt structure and JSON response shape stay
+consistent with what ``paper_service.py`` expects.
 """
 
 from __future__ import annotations
@@ -164,13 +163,41 @@ def normalize_question_response(
     }
 
 
-def build_physics_analysis_prompt(question_text: str, vocabulary: str) -> str:
+def _format_textbook_context(textbook_context: dict[str, Any] | None) -> str:
+    """Render the NCERT grounding context (if any) as a prompt section."""
+
+    if not textbook_context or not textbook_context.get("description"):
+        return ""
+
+    expected_labels = ", ".join(textbook_context.get("expected_labels", [])) or "(none)"
+    important_points = "\n".join(f"- {point}" for point in textbook_context.get("important_points", [])) or "(none)"
+
+    return f"""
+NCERT Textbook Context (Chapter: {textbook_context.get("chapter", "")}, Topic: {textbook_context.get("topic", "")}):
+\"\"\"
+{textbook_context.get("description", "")}
+\"\"\"
+
+NCERT-expected labels for this concept: {expected_labels}
+NCERT-highlighted points relevant to the diagram:
+{important_points}
+
+Ground your "chapter", "concept", "required_entities", "labels", and "understanding" fields in
+this textbook context - do not rely on the question text alone.
+"""
+
+
+def build_physics_analysis_prompt(
+    question_text: str,
+    vocabulary: str,
+    textbook_context: dict[str, Any] | None = None,
+) -> str:
     """Build a prompt that turns the LLM into a "Physics Semantic Analyst".
 
     This is the entry point of the Dynamic Physics Semantic Schema pipeline:
 
-        Question -> PhysicsAnalyzerService -> Semantic Schema -> Template Selection
-                 -> SchemaPopulationService -> Render Schema -> SVG
+        Question -> PhysicsKnowledgeRetriever -> PhysicsAnalyzerService -> Semantic Schema
+                 -> Template Selection -> SchemaPopulationService -> Render Schema -> SVG
 
     The model does NOT design or draw the diagram. For every question it must:
       1. Understand the question.
@@ -183,13 +210,19 @@ def build_physics_analysis_prompt(question_text: str, vocabulary: str) -> str:
 
     It must NEVER produce coordinates, pixel positions, angles, sizes, or
     SVG/markup - all geometry is computed deterministically downstream by
-    ``SchemaPopulationService`` and ``diagram_generators``. The "extra" block
-    is the one place the model can be concept-specific: it should contain
-    whatever categorical (non-numeric) facts a renderer for THIS concept
-    would need, modeled on the worked examples below.
+    ``DiagramRouter`` and the diagram generators. The "extra" and
+    "geometry_rules" blocks are where the model can be concept-specific: they
+    should contain whatever categorical (non-numeric) facts a renderer for
+    THIS concept would need, modeled on the worked examples below.
+
+    ``textbook_context``, if provided (from ``PhysicsKnowledgeRetriever``), is
+    the retrieved NCERT excerpt for the detected chapter/concept and is
+    appended to the prompt so the model reasons from the textbook, not just
+    the question.
     """
 
     diagram_types = ", ".join(sorted(_VALID_DIAGRAM_TYPES))
+    textbook_section = _format_textbook_context(textbook_context)
 
     return f"""You are a CBSE Class 12 Physics Semantic Analyst. You do NOT design or draw
 diagrams - your job is to read a question, understand it deeply, and emit a dynamic,
@@ -211,13 +244,14 @@ IMPORTANT RULES:
   "candidate_concepts" so it can be reviewed, but still pick the closest "diagram_type".
 - If nothing matches at all, set "concept" and "scenario" to null and leave "candidate_concepts"
   with your best proposed name(s).
-- "extra" is a free-form, CONCEPT-SPECIFIC object. Its shape should change depending on the
-  concept - do not force every concept into the same fields. Use the worked examples below as a
-  guide for the KIND of categorical (non-numeric) information to include, not as a fixed schema.
+- "extra" and "geometry_rules" are free-form, CONCEPT-SPECIFIC objects. Their shape should change
+  depending on the concept - do not force every concept into the same fields. Use the worked
+  examples below as a guide for the KIND of categorical (non-numeric) information to include, not
+  as a fixed schema.
 
 Vocabulary (diagram_type: concept (scenarios: ...)):
 {vocabulary}
-
+{textbook_section}
 Question:
 \"\"\"
 {question_text}
@@ -235,6 +269,8 @@ Respond with ONLY a JSON object matching this schema (no markdown, no commentary
   "required_entities": ["<diagram component/entity 1>", "<...>"],
   "relationships": ["<how the entities relate to each other, e.g. 'lens forms image of object on the opposite side'>"],
   "constraints": ["<physical constraints the diagram must respect, e.g. 'image must be real and inverted'>"],
+  "labels": ["<label that must appear on the diagram, e.g. 'B (into the page)'>", "<...>"],
+  "geometry_rules": {{ ... concept-specific relational facts, see examples below ... }},
   "visual_rules": ["<rules the renderer must follow, e.g. 'draw two construction rays from the top of the object'>"],
   "validation": ["<checks an examiner would use to mark the diagram correct, e.g. 'all forces must be labeled with arrows'>"],
   "understanding": {{
@@ -248,8 +284,9 @@ Respond with ONLY a JSON object matching this schema (no markdown, no commentary
   "extra": {{ ... concept-specific fields, see examples below ... }}
 }}
 
-WORKED EXAMPLES of "extra" (these illustrate the KIND of concept-specific information expected -
-adapt the field names and values to the actual concept of the current question):
+WORKED EXAMPLES of "extra"/"geometry_rules" (these illustrate the KIND of concept-specific
+information expected - adapt the field names and values to the actual concept of the current
+question):
 
 - Ray Diagram (e.g. convex lens, object between F and 2F):
   "extra": {{
@@ -257,6 +294,12 @@ adapt the field names and values to the actual concept of the current question):
     "object_position": "between_f_and_2f",
     "expected_image": "real_inverted_magnified",
     "ray_rules": ["parallel_ray", "optical_center_ray"]
+  }}
+  "geometry_rules": {{
+    "object_side": "left",
+    "image_side": "right",
+    "object_zone": "between_f_and_2f",
+    "image_zone": "beyond_2f"
   }}
 
 - Full Wave Rectifier (circuit):
@@ -284,9 +327,21 @@ adapt the field names and values to the actual concept of the current question):
     "curve_shape": "linear_with_intercept"
   }}
 
+- Magnetic Field (e.g. circular current loop, viewed along its axis):
+  "extra": {{
+    "source_type": "circular_loop",
+    "current_direction": "anticlockwise",
+    "viewing_plane": "axial"
+  }}
+  "geometry_rules": {{
+    "field_symmetry": "axial",
+    "current_direction": "anticlockwise",
+    "viewing_plane": "axial"
+  }}
+
 If the question does NOT require a diagram, set "diagram_required" to false, "diagram_type" to
 "none", "concept" and "scenario" to null, "required_entities"/"relationships"/"constraints"/
-"visual_rules"/"validation" to empty arrays, "extra" to an empty object {{}}, but still fill in
-"understanding" - in particular, "why_is_a_diagram_required" must explain why no diagram is
-needed for this question.
+"labels"/"visual_rules"/"validation" to empty arrays, "extra"/"geometry_rules" to empty objects
+{{}}, but still fill in "understanding" - in particular, "why_is_a_diagram_required" must explain
+why no diagram is needed for this question.
 """

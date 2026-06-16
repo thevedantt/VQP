@@ -33,6 +33,7 @@ class DiagramSpec(BaseModel):
     diagram_type: DiagramType
     specification: dict[str, Any]
     svg: str = ""
+    validation: dict[str, Any] | None = None
 
 
 class DiagramCoverage(BaseModel):
@@ -100,6 +101,17 @@ class DetectDiagramResponse(BaseModel):
     reason: str | None = None
 
 
+class DiagramRetrieveAndGenerateResponse(BaseModel):
+    """Output payload for POST /api/diagram/retrieve-and-generate."""
+
+    question: str = ""
+    classification: dict[str, str] = Field(default_factory=dict)
+    retrieved_schema_id: str = ""
+    similarity_score: float = 0.0
+    diagram_schema: dict[str, Any] = Field(default_factory=dict)
+    diagram_url: str = ""
+
+
 class GenerateDiagramResponse(BaseModel):
     """Output payload for POST /api/generate-diagram."""
 
@@ -134,26 +146,64 @@ class PhysicsAnalysisModel(BaseModel):
     required_entities: list[str] = Field(default_factory=list)
     relationships: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
+    labels: list[str] = Field(default_factory=list)
+    geometry_rules: dict[str, Any] = Field(default_factory=dict)
     visual_rules: list[str] = Field(default_factory=list)
     validation: list[str] = Field(default_factory=list)
     understanding: UnderstandingModel = Field(default_factory=UnderstandingModel)
     extra: dict[str, Any] = Field(default_factory=dict)
+    textbook_context: dict[str, Any] = Field(default_factory=dict)
+
+
+class NcertContextModel(BaseModel):
+    """Mirrors ``PhysicsKnowledgeRetriever.retrieve()`` - the NCERT grounding
+    context retrieved for the detected chapter/concept (Phase 2)."""
+
+    chapter: str = ""
+    topic: str = ""
+    description: str = ""
+    diagram_explanation: str = ""
+    expected_labels: list[str] = Field(default_factory=list)
+    important_points: list[str] = Field(default_factory=list)
+
+
+class GeneratorSelectionModel(BaseModel):
+    """Which specialized physics engine ``DiagramRouter`` selected (Phase 4)."""
+
+    engine: str
+    diagram_type: DiagramType
+    concept: str | None = None
+    scenario: str | None = None
+
+
+class ValidationReportModel(BaseModel):
+    """Mirrors ``DiagramValidationService.validate()`` output (Phase 6)."""
+
+    diagram_score: float = 0.0
+    missing_entities: list[str] = Field(default_factory=list)
+    missing_labels: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class AnalyzeDiagramResponse(BaseModel):
     """Output payload for POST /api/debug/analyze-diagram.
 
     Exposes every stage of the
-    Question -> Understanding Layer -> Semantic Schema -> Template Selection
-    -> Render Schema -> Final Diagram pipeline for debugging/inspection.
+    Question -> Sentence Breakdown -> Physics Understanding -> NCERT Context
+    -> Semantic Schema -> Generator Selected -> Generator Input
+    -> Validation Report -> Final Diagram pipeline for debugging/inspection.
     """
 
     question: str
     physics_analysis: PhysicsAnalysisModel
     understanding: UnderstandingModel
+    ncert_context: NcertContextModel
     selected_template: dict[str, Any]
     semantic_schema: dict[str, Any]
+    generator_selection: GeneratorSelectionModel
+    generator_input: dict[str, Any]
     render_schema: dict[str, Any]
+    validation_report: ValidationReportModel
     svg: str = ""
 
 

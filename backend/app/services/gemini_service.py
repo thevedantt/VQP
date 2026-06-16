@@ -1,20 +1,17 @@
-"""Gemini-backed AI question generator.
+"""Gemini-backed AI service for question generation and physics analysis.
 
-Generates new, CBSE-style Physics questions grounded in an NCERT excerpt.
-Requests strict JSON output from Gemini and validates/repairs the response
-shape before handing it back to the paper service.
+All LLM calls go through Gemini with strict JSON mode, low temperature,
+and robust error handling.
 
-Acts as the **secondary** fallback in the AI generation cascade (after
-OpenRouter GPT-4o, before the local template generator). When
-``GEMINI_API_KEY`` is not configured, or the API fails after all retries,
-``generate_question`` raises ``GeminiServiceError`` so the caller can fall
-through to the next tier.
+Cascade:
+    Gemini -> local template/local generator (always succeeds)
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from typing import Any
 
@@ -23,13 +20,51 @@ from google.genai import types as genai_types
 
 from app.core.exceptions import GeminiServiceError
 from app.models.enums import DifficultyLevel, DiagramType, QuestionType
-from app.services.prompt_builder import build_question_prompt, normalize_question_response
+from app.services.prompt_builder import (
+    build_physics_analysis_prompt,
+    build_question_prompt,
+    normalize_question_response,
+)
 
 logger = logging.getLogger(__name__)
 
 
+def _clean_json_response(text: str) -> str:
+    """Remove markdown code fences and leading/trailing whitespace from a
+    Gemini response that should contain raw JSON."""
+    text = text.strip()
+    text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*```$", "", text, flags=re.IGNORECASE)
+    return text.strip()
+
+
+def _parse_json_safely(text: str, label: str = "response") -> dict[str, Any] | None:
+    """Attempt to parse *text* as JSON, cleaning markdown fences first.
+
+    Returns the parsed dict on success, or ``None`` on failure (and logs the
+    malformed content at warning level).
+    """
+    cleaned = _clean_json_response(text)
+    try:
+        data = json.loads(cleaned)
+        if not isinstance(data, dict):
+            logger.warning("Gemini %s parsed but is not a dict (type=%s)", label, type(data).__name__)
+            return None
+        return data
+    except json.JSONDecodeError as exc:
+        logger.warning(
+            "Gemini %s JSON parse failed: %s\nRaw content (first 500 chars): %.500s",
+            label, exc, text,
+        )
+        return None
+
+
 class GeminiService:
-    """Wraps the Gemini API for grounded CBSE question generation."""
+    """Wraps the Gemini API for CBSE question generation and physics analysis.
+
+    All calls use ``response_mime_type="application/json"`` and a low
+    temperature (0.1-0.2) for deterministic, structured JSON output.
+    """
 
     def __init__(
         self,
@@ -54,15 +89,71 @@ class GeminiService:
         else:
             self._client = None
             logger.warning(
-                "GEMINI_API_KEY is not configured - GeminiService is unavailable as a fallback tier."
+                "GEMINI_API_KEY is not configured - GeminiService is unavailable."
             )
 
     @property
     def is_configured(self) -> bool:
         """Whether a real Gemini API key is configured."""
-
         return self._enabled
 
+    def _call(
+        self,
+        prompt: str,
+        temperature: float,
+        label: str = "unspecified",
+    ) -> str:
+        """Low-level Gemini generate_content call with timing and token logging.
+
+        Raises ``GeminiServiceError`` on failure.
+        """
+        if not self._enabled:
+            raise GeminiServiceError("Gemini is not configured (GEMINI_API_KEY missing).")
+
+        t0 = time.perf_counter()
+        logger.info("Gemini request started [%s]", label)
+
+        try:
+            response = self._client.models.generate_content(
+                model=self._model_name,
+                contents=prompt,
+                config=genai_types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=temperature,
+                ),
+            )
+        except Exception as exc:
+            elapsed = time.perf_counter() - t0
+            logger.error(
+                "Gemini API call failed [%s] after %.2fs: %s",
+                label, elapsed, exc,
+            )
+            raise GeminiServiceError(
+                f"Gemini API call failed for '{label}'.",
+                detail=str(exc),
+            ) from exc
+
+        elapsed = time.perf_counter() - t0
+        logger.info("Gemini response received [%s] in %.2fs", label, elapsed)
+
+        # Log token usage if available.
+        usage = getattr(response, "usage_metadata", None)
+        if usage is not None:
+            logger.info(
+                "Gemini token usage [%s]: %s",
+                label,
+                {
+                    "prompt_tokens": getattr(usage, "prompt_token_count", None),
+                    "candidates_tokens": getattr(usage, "candidates_token_count", None),
+                    "total_tokens": getattr(usage, "total_token_count", None),
+                },
+            )
+
+        return response.text
+
+    # ------------------------------------------------------------------
+    # Question Generation
+    # ------------------------------------------------------------------
     def generate_question(
         self,
         chapter: str,
@@ -75,42 +166,42 @@ class GeminiService:
     ) -> dict[str, Any]:
         """Generate a single new question grounded in ``context`` NCERT excerpt.
 
-        When ``require_diagram`` is True, the prompt is steered so the
-        generated question explicitly requires a diagram of
-        ``diagram_type_hint`` (e.g. "Draw the free body diagram...").
-
         Raises ``GeminiServiceError`` if not configured or if generation
         fails after all retries.
         """
-
         if not self._enabled:
             raise GeminiServiceError("Gemini is not configured (GEMINI_API_KEY missing).")
 
-        prompt = build_question_prompt(chapter, difficulty, marks, question_type, context, require_diagram, diagram_type_hint)
+        prompt = build_question_prompt(
+            chapter, difficulty, marks, question_type, context,
+            require_diagram, diagram_type_hint,
+        )
         last_error: Exception | None = None
 
         for attempt in range(1, self._max_retries + 1):
             try:
-                response = self._client.models.generate_content(
-                    model=self._model_name,
-                    contents=prompt,
-                    config=genai_types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.7,
-                    ),
+                text = self._call(prompt, temperature=0.2, label=f"generate_question/{chapter}/{question_type}/attempt_{attempt}")
+                data = _parse_json_safely(text, label="generate_question")
+                if data is None:
+                    raise ValueError("Failed to parse Gemini response as JSON dict.")
+                result = normalize_question_response(data, chapter, difficulty, marks, question_type, diagram_type_hint)
+                logger.info(
+                    "Gemini question generation succeeded [%s/%s] (attempt %d/%d)",
+                    chapter, question_type, attempt, self._max_retries,
                 )
-                data = json.loads(response.text)
-                return normalize_question_response(data, chapter, difficulty, marks, question_type, diagram_type_hint)
-            except (json.JSONDecodeError, KeyError, ValueError, AttributeError) as exc:
+                return result
+            except (json.JSONDecodeError, ValueError, KeyError) as exc:
                 last_error = exc
                 logger.warning(
-                    "Gemini response parsing failed for chapter='%s' type=%s (attempt %d/%d): %s",
+                    "Gemini response parsing failed [%s/%s] (attempt %d/%d): %s",
                     chapter, question_type, attempt, self._max_retries, exc,
                 )
-            except Exception as exc:  # pragma: no cover - depends on google API runtime errors
+            except GeminiServiceError:
+                raise
+            except Exception as exc:
                 last_error = exc
                 logger.warning(
-                    "Gemini API call failed for chapter='%s' type=%s (attempt %d/%d): %s",
+                    "Gemini API call failed [%s/%s] (attempt %d/%d): %s",
                     chapter, question_type, attempt, self._max_retries, exc,
                 )
 
@@ -123,31 +214,34 @@ class GeminiService:
             detail=str(last_error),
         )
 
-    def analyze_physics(self, question_text: str, vocabulary: str) -> dict[str, Any] | None:
-        """Best-effort single-attempt physics understanding. Returns ``None`` on any failure.
+    # ------------------------------------------------------------------
+    # Physics Analysis
+    # ------------------------------------------------------------------
+    def analyze_physics(
+        self,
+        question_text: str,
+        vocabulary: str,
+        textbook_context: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """Best-effort single-attempt physics understanding.
 
-        Restricted to ``{diagram_required, diagram_type, chapter, concept,
-        scenario, entities, confidence}`` - never coordinates or geometry.
+        Returns ``None`` on any failure so the caller can fall through
+        to the local heuristic.
         """
-
         if not self._enabled:
             return None
 
-        from app.services.prompt_builder import build_physics_analysis_prompt
-
         try:
-            response = self._client.models.generate_content(
-                model=self._model_name,
-                contents=build_physics_analysis_prompt(question_text, vocabulary),
-                config=genai_types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.2,
-                ),
-            )
-            data = json.loads(response.text)
-            if not isinstance(data, dict):
+            prompt = build_physics_analysis_prompt(question_text, vocabulary, textbook_context)
+            text = self._call(prompt, temperature=0.2, label="analyze_physics")
+            data = _parse_json_safely(text, label="analyze_physics")
+            if data is None:
                 return None
+            logger.info("Gemini physics analysis succeeded")
             return data
-        except Exception as exc:  # pragma: no cover - best-effort enrichment
+        except GeminiServiceError as exc:
+            logger.warning("Gemini physics analysis failed: %s", exc)
+            return None
+        except Exception as exc:
             logger.warning("Gemini physics analysis failed: %s", exc)
             return None

@@ -53,12 +53,6 @@ class GeminiServiceError(VQPError):
     status_code = status.HTTP_502_BAD_GATEWAY
 
 
-class OpenRouterServiceError(VQPError):
-    """Raised when the OpenRouter API fails after all retries."""
-
-    status_code = status.HTTP_502_BAD_GATEWAY
-
-
 class PaperGenerationError(VQPError):
     """Raised when the orchestrator cannot assemble a valid paper."""
 

@@ -12,10 +12,16 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, analyzeDiagram } from "@/lib/api";
-import type { AnalyzeDiagramResponse, UnderstandingLayer } from "@/lib/types";
+import type {
+  AnalyzeDiagramResponse,
+  GeneratorSelection,
+  NcertContext,
+  UnderstandingLayer,
+  ValidationReport,
+} from "@/lib/types";
 
 const EXAMPLE_QUESTION =
-  "Draw the ray diagram of a convex lens with object between F and 2F.";
+  "Sketch the magnetic field lines due to a current-carrying circular loop, viewed along its axis.";
 
 function JsonPanel({ title, data }: { title: string; data: unknown }) {
   return (
@@ -105,6 +111,116 @@ function UnderstandingPanel({
   );
 }
 
+function NcertContextPanel({ context }: { context: NcertContext }) {
+  const hasContext = context.description.trim().length > 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">NCERT Context</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 text-sm">
+        {hasContext ? (
+          <>
+            <div>
+              <p className="font-medium text-foreground">Chapter / Topic</p>
+              <p className="text-muted-foreground">
+                {context.chapter || "—"}
+                {context.topic ? ` — ${context.topic}` : ""}
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Description</p>
+              <p className="whitespace-pre-wrap text-muted-foreground">
+                {context.description}
+              </p>
+            </div>
+            {context.diagram_explanation &&
+              context.diagram_explanation !== context.description && (
+                <div>
+                  <p className="font-medium text-foreground">
+                    Diagram Explanation
+                  </p>
+                  <p className="whitespace-pre-wrap text-muted-foreground">
+                    {context.diagram_explanation}
+                  </p>
+                </div>
+              )}
+            <ListField
+              label="Expected Labels"
+              items={context.expected_labels}
+            />
+            <ListField
+              label="Important Points"
+              items={context.important_points}
+            />
+          </>
+        ) : (
+          <p className="text-muted-foreground">
+            No NCERT context available for this chapter yet.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function GeneratorSelectionPanel({
+  selection,
+}: {
+  selection: GeneratorSelection;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Generator Selected</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <p className="font-medium text-foreground">Engine</p>
+          <p className="text-muted-foreground">{selection.engine}</p>
+        </div>
+        <div>
+          <p className="font-medium text-foreground">Diagram Type</p>
+          <p className="text-muted-foreground">{selection.diagram_type}</p>
+        </div>
+        <div>
+          <p className="font-medium text-foreground">Concept</p>
+          <p className="text-muted-foreground">{selection.concept || "—"}</p>
+        </div>
+        <div>
+          <p className="font-medium text-foreground">Scenario</p>
+          <p className="text-muted-foreground">{selection.scenario || "—"}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ValidationReportPanel({ report }: { report: ValidationReport }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Validation Report</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 text-sm">
+        <div>
+          <p className="font-medium text-foreground">Diagram Score</p>
+          <p className="text-muted-foreground">
+            {report.diagram_score.toFixed(1)} / 100
+          </p>
+        </div>
+        <ListField
+          label="Missing Entities"
+          items={report.missing_entities}
+        />
+        <ListField label="Missing Labels" items={report.missing_labels} />
+        <ListField label="Warnings" items={report.warnings} />
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function TestPlaygroundPage() {
   const [question, setQuestion] = useState(EXAMPLE_QUESTION);
   const [result, setResult] = useState<AnalyzeDiagramResponse | null>(null);
@@ -134,9 +250,10 @@ export default function TestPlaygroundPage() {
             Diagram Intelligence Playground
           </h1>
           <p className="text-sm text-muted-foreground">
-            Inspect every stage of the Question → Understanding Layer →
-            Semantic Schema → Template Selection → Render Schema → Final
-            Diagram pipeline.
+            Inspect every stage of the Question → Understanding Layer → NCERT
+            Context → Semantic Schema → Selected Template → Generator
+            Selected → Generator Input → Render Schema → Validation Report →
+            Final Diagram pipeline.
           </p>
         </div>
       </header>
@@ -166,9 +283,13 @@ export default function TestPlaygroundPage() {
         {result && (
           <>
             <UnderstandingPanel understanding={result.understanding} />
+            <NcertContextPanel context={result.ncert_context} />
             <JsonPanel title="Semantic Schema" data={result.semantic_schema} />
-            <JsonPanel title="Template Selected" data={result.selected_template} />
+            <JsonPanel title="Selected Template" data={result.selected_template} />
+            <GeneratorSelectionPanel selection={result.generator_selection} />
+            <JsonPanel title="Generator Input" data={result.generator_input} />
             <JsonPanel title="Render Schema" data={result.render_schema} />
+            <ValidationReportPanel report={result.validation_report} />
 
             <Card>
               <CardHeader>

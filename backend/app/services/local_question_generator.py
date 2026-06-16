@@ -1,7 +1,7 @@
 """Final-tier offline question generator.
 
-Used only when both OpenRouter and Gemini are unavailable (no API keys
-configured, or both fail after retries). Produces a normal-looking CBSE-style
+Used only when Gemini is unavailable (no API key configured, or fails after
+retries). Produces a normal-looking CBSE-style
 question grounded in the NCERT excerpt - it must never read as a placeholder,
 error message, or mention any AI provider, per the "never expose fallback
 messages to users" requirement.

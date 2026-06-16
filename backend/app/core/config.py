@@ -35,14 +35,6 @@ class Settings(BaseSettings):
     gemini_retry_backoff_seconds: float = 1.5
     gemini_request_timeout_seconds: float = 30.0
 
-    # OpenRouter
-    openrouter_api_key: str | None = None
-    openrouter_model: str = "openai/gpt-4o"
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_max_retries: int = 2
-    openrouter_retry_backoff_seconds: float = 1.0
-    openrouter_request_timeout_seconds: float = 30.0
-
     # Data paths
     question_bank_dir: Path = DATA_DIR / "question_bank"
     book_dir: Path = DATA_DIR / "Book"
@@ -57,6 +49,7 @@ class Settings(BaseSettings):
 
     diagram_taxonomy_dir: Path = DATA_DIR / "diagram_taxonomy"
     diagram_templates_dir: Path = DATA_DIR / "diagram_templates"
+    diagram_library_final_dir: Path = DATA_DIR / "diagram_library" / "final"
 
     # Paper generation defaults
     default_total_questions: int = 16

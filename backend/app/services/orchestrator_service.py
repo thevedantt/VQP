@@ -15,9 +15,10 @@ from uuid import uuid4
 
 from app.models.requests import GeneratePaperRequest
 from app.models.responses import DiagramCoverage, DiagramSpec, GeneratedPaperResponse, PaperSection, QuestionItem
+from app.services.diagram_router import DiagramRouter
 from app.services.diagram_service import DiagramService
-from app.services.diagram_svg import render_svg
 from app.services.diagram_template_service import DiagramTemplateService
+from app.services.diagram_validation_service import DiagramValidationService
 from app.services.paper_evaluator import PaperEvaluator
 from app.services.paper_service import PaperService, QuestionDraft
 from app.services.physics_understanding_service import PhysicsUnderstandingService
@@ -85,6 +86,8 @@ class PaperGenerationOrchestrator:
         diagram_template_service: DiagramTemplateService,
         schema_population_service: SchemaPopulationService,
         paper_evaluator: PaperEvaluator,
+        diagram_router: DiagramRouter,
+        diagram_validation_service: DiagramValidationService,
     ) -> None:
         self._weightage_service = weightage_service
         self._paper_service = paper_service
@@ -93,6 +96,8 @@ class PaperGenerationOrchestrator:
         self._diagram_template_service = diagram_template_service
         self._schema_population_service = schema_population_service
         self._paper_evaluator = paper_evaluator
+        self._diagram_router = diagram_router
+        self._diagram_validation_service = diagram_validation_service
 
     def generate_paper(self, request: GeneratePaperRequest) -> GeneratedPaperResponse:
         """Run the full pipeline and return the assembled paper."""
@@ -178,11 +183,11 @@ class PaperGenerationOrchestrator:
             if diagram_type:
                 semantic_schema["diagram_type"] = diagram_type
 
-            # 4. Render Schema
-            render_schema = self._schema_population_service.build_render_schema(semantic_schema, draft.question, template)
+            # 4. Diagram Router -> Render Schema + SVG
+            result = self._diagram_router.generate(semantic_schema, draft.question, template)
 
-            # 5. Renderer
-            svg = render_svg(render_schema)
+            # 5. Validation
+            validation_report = self._diagram_validation_service.validate(semantic_schema, result.render_schema, result.svg)
 
             diagram_id = f"DIAG_{draft.question_id}"
             diagrams_out.append(
@@ -190,8 +195,9 @@ class PaperGenerationOrchestrator:
                     diagram_id=diagram_id,
                     question_id=draft.question_id,
                     diagram_type=diagram_type,
-                    specification=render_schema,
-                    svg=svg,
+                    specification=result.render_schema,
+                    svg=result.svg,
+                    validation=validation_report,
                 )
             )
 
