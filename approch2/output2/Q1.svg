@@ -1,0 +1,51 @@
+
+<svg xmlns="http://www.w3.org/2000/svg"
+width="800"
+height="400">
+
+<line
+x1="50"
+y1="200"
+x2="750"
+y2="200"
+stroke="black"/>
+
+<line
+x1="400"
+y1="100"
+x2="400"
+y2="300"
+stroke="blue"
+stroke-width="4"/>
+
+<line
+x1="250"
+y1="200"
+x2="250"
+y2="120"
+stroke="black"/>
+
+<polygon
+points="245,125 255,125 250,110"
+fill="black"/>
+
+<line
+x1="650"
+y1="200"
+x2="650"
+y2="280"
+stroke="black"/>
+
+<polygon
+points="645,275 655,275 650,290"
+fill="black"/>
+
+<text x="230" y="105">Object</text>
+
+<text x="630" y="310">Image</text>
+
+<text x="330" y="220">F1</text>
+
+<text x="470" y="220">F2</text>
+
+</svg>

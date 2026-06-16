@@ -1,0 +1,126 @@
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1000"
+     height="600">
+
+    <!-- Principal Axis -->
+
+    <line
+        x1="50"
+        y1="300"
+        x2="950"
+        y2="300"
+        stroke="black"
+        stroke-width="2"/>
+
+    <!-- Convex Lens -->
+
+    <ellipse
+        cx="500"
+        cy="300"
+        rx="15"
+        ry="140"
+        fill="none"
+        stroke="blue"
+        stroke-width="3"/>
+
+    <!-- Focal Points -->
+
+    <circle cx="400" cy="300" r="4" fill="black"/>
+    <circle cx="600" cy="300" r="4" fill="black"/>
+
+    <circle cx="300" cy="300" r="4" fill="black"/>
+    <circle cx="700" cy="300" r="4" fill="black"/>
+
+    <text x="388" y="325">F1</text>
+    <text x="588" y="325">F2</text>
+
+    <text x="282" y="325">2F1</text>
+    <text x="682" y="325">2F2</text>
+
+    <!-- Object -->
+
+    <line
+        x1="350"
+        y1="300"
+        x2="350"
+        y2="200"
+        stroke="black"
+        stroke-width="3"/>
+
+    <polygon
+        points="
+        344,210
+        356,210
+        350,190
+        "
+        fill="black"/>
+
+    <text
+        x="325"
+        y="180">
+        Object
+    </text>
+
+    <!-- Image -->
+
+    <line
+        x1="820"
+        y1="300"
+        x2="820"
+        y2="480"
+        stroke="black"
+        stroke-width="3"/>
+
+    
+    <polygon
+        points="
+        814,470
+        826,470
+        820,490
+        "
+        fill="black"/>
+
+    <text
+        x="800"
+        y="515">
+        Image
+    </text>
+
+    <!-- Parallel Ray -->
+
+    <line
+        x1="350"
+        y1="200"
+        x2="500"
+        y2="200"
+        stroke="red"
+        stroke-width="2"/>
+
+    <line
+        x1="500"
+        y1="200"
+        x2="820"
+        y2="480"
+        stroke="red"
+        stroke-width="2"/>
+
+    <!-- Optical Center Ray -->
+
+    <line
+        x1="350"
+        y1="200"
+        x2="820"
+        y2="480"
+        stroke="green"
+        stroke-width="2"/>
+
+    <!-- Lens Label -->
+
+    <text
+        x="460"
+        y="140">
+        Convex Lens
+    </text>
+
+</svg>
