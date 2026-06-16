@@ -4,7 +4,7 @@ import base64
 class FluxService:
 
     def __init__(self):
-        self.api_key = "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"
+        self.api_key = ""
 
         self.url = (
             "https://ai.api.nvidia.com/v1/genai/"
