@@ -35,14 +35,14 @@
       stroke="#999" stroke-width="1" stroke-dasharray="3,3"/>
 <!-- Rays -->
 <line x1="450" y1="200" x2="500" y2="200" stroke="#cc0000" stroke-width="2"/>
-<line x1="500" y1="200" x2="844.3431457505076" y2="544.3431457505076" stroke="#cc0000" stroke-width="2" marker-end="url(#ah-red)"/>
-<line x1="844.3431457505076" y1="544.3431457505076" x2="850" y2="550.0" stroke="#cc0000" stroke-width="2"/>
-<line x1="500" y1="200" x2="400.0" y2="100.0" stroke="#cc0000" stroke-width="1" stroke-dasharray="7,5"/>
+<line x1="500" y1="200" x2="1154.3431457505076" y2="854.3431457505076" stroke="#cc0000" stroke-width="2" marker-end="url(#ah-red)"/>
+<line x1="1154.3431457505076" y1="854.3431457505076" x2="1160" y2="860.0" stroke="#cc0000" stroke-width="2"/>
+<line x1="500" y1="200" x2="400.0" y2="100.0" stroke="#cc0000" stroke-width="1.5" stroke-dasharray="7,5"/>
 
 <line x1="450" y1="200" x2="500" y2="300" stroke="#006600" stroke-width="2"/>
-<line x1="500" y1="300" x2="846.4222912360003" y2="992.8445824720006" stroke="#006600" stroke-width="2" marker-end="url(#ah-green)"/>
-<line x1="846.4222912360003" y1="992.8445824720006" x2="850" y2="1000.0" stroke="#006600" stroke-width="2"/>
-<line x1="500" y1="300" x2="400.0" y2="100.0" stroke="#006600" stroke-width="1" stroke-dasharray="7,5"/>
+<line x1="500" y1="300" x2="1156.4222912360003" y2="1612.8445824720006" stroke="#006600" stroke-width="2" marker-end="url(#ah-green)"/>
+<line x1="1156.4222912360003" y1="1612.8445824720006" x2="1160" y2="1620.0" stroke="#006600" stroke-width="2"/>
+<line x1="500" y1="300" x2="400.0" y2="100.0" stroke="#006600" stroke-width="1.5" stroke-dasharray="7,5"/>
 
 <line x1="450" y1="300" x2="450" y2="200" stroke="black" stroke-width="3" marker-end="url(#ah)"/>
 <text x="440" y="188" text-anchor="end" font-size="15" font-family="Arial, sans-serif" font-style="italic">Object</text>
