@@ -32,6 +32,9 @@ class CircuitSolver:
         elif circuit_type == "meter_bridge":
             return self._solve_meter_bridge(blueprint, components)
 
+        elif circuit_type == "potentiometer":
+            return self._solve_potentiometer(blueprint, components)
+
         return {
             "circuit_mode": "unknown",
             "message": f"No solver implemented for '{circuit_type}'"
@@ -202,6 +205,68 @@ class CircuitSolver:
             "bridge_type": "meter_bridge",
             "message": "Meter bridge: insufficient component data"
         }
+
+
+    # --------------------------------------------------
+    # Potentiometer solver
+    # --------------------------------------------------
+
+    def _solve_potentiometer(self, blueprint: Dict, components: Dict) -> Dict:
+        driving_cell = None
+        wire_segments = {}
+        r_rheostat = 0.0
+        test_cell = None
+
+        for cid, cdata in components.items():
+            ctype = cdata.get("type", "")
+            if ctype == "cell":
+                raw = cdata.get("voltage")
+                if raw is not None:
+                    if driving_cell is None:
+                        driving_cell = float(raw)
+                    else:
+                        test_cell = float(raw)
+            elif ctype == "resistor":
+                r_rheostat = float(cdata.get("resistance", 0))
+            elif ctype == "wire":
+                raw = cdata.get("length_cm")
+                if raw is not None:
+                    wire_segments[cid] = float(raw)
+
+        driving_voltage = driving_cell or 0.0
+        total_wire_length = sum(wire_segments.values()) if wire_segments else 0.0
+        wire_resistance_ratio = total_wire_length * 0.1  # assume 0.1 ohm/cm (constantan wire)
+
+        total_r = r_rheostat + wire_resistance_ratio
+        current = driving_voltage / total_r if total_r > 0 else 0.0
+        pd_ac = current * wire_resistance_ratio
+        gradient = pd_ac / total_wire_length if total_wire_length > 0 else 0.0
+
+        result = {
+            "circuit_mode": "potentiometer",
+            "driving_voltage": round(driving_voltage, 2),
+            "rheostat_resistance": round(r_rheostat, 2),
+            "total_wire_length_cm": round(total_wire_length, 2),
+            "driving_current_A": round(current, 4),
+            "pd_across_wire_V": round(pd_ac, 4),
+            "potential_gradient_V_per_cm": round(gradient, 6),
+        }
+
+        if test_cell is not None:
+            result["test_cell_voltage"] = round(test_cell, 2)
+            if gradient > 0:
+                null_length = test_cell / gradient
+                result["null_point_length_cm"] = round(null_length, 2)
+                result["message"] = (
+                    f"Null point at {null_length:.2f} cm from A "
+                    f"(test cell EMF = {test_cell}V)"
+                )
+            else:
+                result["message"] = "Zero gradient — cannot determine null point"
+        else:
+            result["message"] = "Test cell voltage unknown (it is the value to be measured)"
+
+        return result
 
 
 if __name__ == "__main__":

@@ -83,7 +83,7 @@ if __name__ == "__main__":
         blueprints = json.load(f)
 
     compiler = CircuitCompiler()
-    output_dir = Path("output")
+    output_dir = Path("opcompos")
     output_dir.mkdir(exist_ok=True)
 
     print("=" * 64)
@@ -93,13 +93,15 @@ if __name__ == "__main__":
     results = []
     for bp in blueprints:
         qid = bp.get("question_id", "?")
-        out_path = str(output_dir / f"{qid}.svg")
+        ctype = bp.get("circuit_type", "?")
+        safe_ctype = ctype.replace("_", "_")
+        out_path = str(output_dir / f"{qid}_{ctype}.svg")
 
         result = compiler.compile_to_svg(bp, out_path)
         results.append(result)
 
         status = result["status"]
-        print(f"\n  {qid}: {status}")
+        print(f"\n  {qid} ({ctype}): {status}")
 
         if status == "FAILED":
             for err in result.get("errors", []):
@@ -111,6 +113,8 @@ if __name__ == "__main__":
         print(f"    Nodes: {topo['node_count']}, Components: {topo['component_count']}")
         print(f"    Layout: {result['layout']['layout_type']}")
         print(f"    Solution: {soln.get('circuit_mode', '?')}")
+        if soln.get("message"):
+            print(f"    Info: {soln['message']}")
         print(f"    Output: {result['output_file']}")
 
     passed = sum(1 for r in results if r["status"] == "SUCCESS")

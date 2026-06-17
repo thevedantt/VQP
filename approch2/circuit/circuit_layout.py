@@ -26,6 +26,8 @@ class CircuitLayout:
             return self._layout_bridge(topology)
         elif circuit_type == "meter_bridge":
             return self._layout_meter_bridge(topology)
+        elif circuit_type == "potentiometer":
+            return self._layout_potentiometer(topology)
 
         raise ValueError(f"Unsupported circuit type: {circuit_type}")
 
@@ -220,6 +222,45 @@ class CircuitLayout:
 
         return {
             "layout_type": "meter_bridge",
+            "net_positions": net_positions,
+            "component_placements": placements,
+            "bounds": bounds
+        }
+
+    # ==========================================================
+    # POTENTIOMETER
+    # ==========================================================
+
+    def _layout_potentiometer(self, topology: Dict) -> Dict:
+        u = self.UNIT
+
+        net_positions: Dict[str, Dict] = {
+            "A": {"x": 0, "y": 0},
+            "J": {"x": u * 3, "y": 0},
+            "C": {"x": u * 6, "y": 0},
+            "B": {"x": 0, "y": -u * 2},
+            "D": {"x": u * 3, "y": u * 2}
+        }
+
+        placements: Dict[str, Dict] = {}
+        for cid, cdata in topology["components"].items():
+            nfrom = cdata.get("from")
+            nto = cdata.get("to")
+            if nfrom in net_positions and nto in net_positions:
+                p1 = net_positions[nfrom]
+                p2 = net_positions[nto]
+                placements[cid] = {
+                    "x": (p1["x"] + p2["x"]) / 2,
+                    "y": (p1["y"] + p2["y"]) / 2,
+                    "type": cdata["type"],
+                    "from": nfrom,
+                    "to": nto
+                }
+
+        bounds = self._compute_bounds(net_positions, placements)
+
+        return {
+            "layout_type": "potentiometer",
             "net_positions": net_positions,
             "component_placements": placements,
             "bounds": bounds
