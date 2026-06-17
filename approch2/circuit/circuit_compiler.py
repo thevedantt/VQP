@@ -2,8 +2,8 @@
 circuit_compiler.py
 
 Schema V2 compiler.
-Responsibility: orchestrate the pipeline: validate → topology → layout → solver → renderer → SVG.
-Does NOT perform any stage's work itself.
+Orchestrates: validate -> topology -> layout -> solver -> renderer -> SVG.
+No Schemdraw dependency. Uses custom SVG component library.
 """
 
 import json
@@ -26,16 +26,7 @@ class CircuitCompiler:
         self.solver = CircuitSolver()
         self.renderer = CircuitRenderer()
 
-    # --------------------------------------------------
-    # Public API
-    # --------------------------------------------------
-
     def compile(self, blueprint: Dict) -> Dict:
-        """
-        Run the full pipeline on a single blueprint.
-        Returns a result dict with all stage outputs.
-        """
-        # Stage 1: validation
         validation = self.validator.validate(blueprint)
         if not validation["valid"]:
             return {
@@ -45,17 +36,11 @@ class CircuitCompiler:
                 "blueprint_id": blueprint.get("question_id", "unknown")
             }
 
-        # Stage 2: topology
         topology = self.topologist.build(blueprint)
-
-        # Stage 3: layout
         layout = self.layout_engine.generate(topology, blueprint)
-
-        # Stage 4: solver
         solution = self.solver.solve(blueprint, topology)
 
-        # Stage 5: rendering (returns schemdraw Drawing object)
-        drawing = self.renderer.render(blueprint, layout, solution)
+        svg_markup = self.renderer.render(blueprint, layout, solution)
 
         return {
             "status": "SUCCESS",
@@ -66,7 +51,7 @@ class CircuitCompiler:
             "topology": topology,
             "layout": layout,
             "solution": solution,
-            "drawing": drawing
+            "svg_markup": svg_markup
         }
 
     def compile_to_svg(
@@ -74,9 +59,6 @@ class CircuitCompiler:
         blueprint: Dict,
         output_path: Optional[str] = None
     ) -> Dict:
-        """
-        Compile and save the result as SVG.
-        """
         result = self.compile(blueprint)
 
         if result["status"] == "FAILED":
@@ -85,16 +67,12 @@ class CircuitCompiler:
         if output_path is None:
             output_path = f"{result['blueprint_id']}.svg"
 
-        result["drawing"].save(output_path)
+        Path(output_path).write_text(result["svg_markup"], encoding="utf-8")
         result["output_file"] = output_path
-        del result["drawing"]  # not serializable
+        del result["svg_markup"]
 
         return result
 
-
-# --------------------------------------------------
-# CLI
-# --------------------------------------------------
 
 if __name__ == "__main__":
     import sys
@@ -109,7 +87,7 @@ if __name__ == "__main__":
     output_dir.mkdir(exist_ok=True)
 
     print("=" * 64)
-    print("  CIRCUIT COMPILER REPORT")
+    print("  CIRCUIT COMPILER REPORT (CUSTOM SVG)")
     print("=" * 64)
 
     results = []

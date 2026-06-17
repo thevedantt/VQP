@@ -1,227 +1,177 @@
 """
 circuit_renderer.py
 
-Schema V2 renderer.
-Responsibility: layout coordinates + solution → schemdraw SVG.
+Custom SVG-based renderer.
+Uses SVG primitives + circuit component library instead of Schemdraw.
+
+Responsibility: layout + solution → SVG markup.
 Does NOT calculate physics, does NOT validate, does NOT build topology.
 """
 
 from pathlib import Path
 from typing import Dict, Optional
 
-import schemdraw
-import schemdraw.elements as elm
+from svg.svg_canvas import SVGCanvas
+from svg.svg_line import SVGLine
+from svg.svg_circle import SVGCircle
+from svg.svg_text import SVGText
+
+from components.wire import Wire
+from components.resistor import Resistor
+from components.battery import Battery
+from components.cell import Cell
+from components.bulb import Bulb
+from components.switch import Switch
+from components.ammeter import Ammeter
+from components.voltmeter import Voltmeter
+from components.galvanometer import Galvanometer
+from components.potentiometer import Potentiometer
 
 from circuit_rules import SERIES_CIRCUITS, PARALLEL_CIRCUITS
 
 
 class CircuitRenderer:
 
-    def render(
+    NODE_DOT_R = 3
+
+    COMPONENT_FACTORY = {
+        "battery": Battery(),
+        "cell": Cell(),
+        "resistor": Resistor(),
+        "variable_resistor": Resistor(),
+        "unknown_resistor": Resistor(),
+        "bulb": Bulb(),
+        "switch": Switch(),
+        "key": Switch(),
+        "ammeter": Ammeter(),
+        "voltmeter": Voltmeter(),
+        "galvanometer": Galvanometer(),
+        "potentiometer": Potentiometer(),
+        "wire": Wire()
+    }
+
+    MARGIN = 40
+
+    def render(self, blueprint: Dict, layout: Dict, solution: Dict) -> str:
+        canvas = SVGCanvas()
+
+        net_positions = layout.get("net_positions", {})
+        placements = layout.get("component_placements", {})
+        components = blueprint.get("components", [])
+        solution_data = solution or {}
+        bounds = layout.get("bounds", {})
+
+        if bounds:
+            min_x = bounds.get("min_x", 0) - self.MARGIN
+            min_y = bounds.get("min_y", 0) - self.MARGIN
+            w = bounds.get("width", 400) + self.MARGIN * 2
+            h = bounds.get("height", 300) + self.MARGIN * 2
+            canvas.width = w
+            canvas.height = h
+            canvas.viewbox = f"{min_x} {min_y} {w} {h}"
+
+        self._draw_nodes(canvas, net_positions)
+        self._draw_interconnects(canvas, net_positions, components)
+        self._draw_components(canvas, components, placements, solution_data)
+
+        return canvas.render()
+
+    # --------------------------------------------------
+    # Node dots
+    # --------------------------------------------------
+
+    def _draw_nodes(self, canvas: SVGCanvas, net_positions: Dict) -> None:
+        r = self.NODE_DOT_R
+        for nid, pos in net_positions.items():
+            canvas.add_markup(SVGCircle(pos["x"], pos["y"], r, fill="black").render())
+
+    # --------------------------------------------------
+    # Wires between nodes
+    # --------------------------------------------------
+
+    def _draw_interconnects(
         self,
-        blueprint: Dict,
-        layout: Dict,
+        canvas: SVGCanvas,
+        net_positions: Dict,
+        components: list
+    ) -> None:
+        drawn_pairs = set()
+
+        for comp in components:
+            cfrom = comp.get("from", "")
+            cto = comp.get("to", "")
+            if not cfrom or not cto:
+                continue
+
+            pair = frozenset([cfrom, cto])
+            if pair in drawn_pairs:
+                continue
+            drawn_pairs.add(pair)
+
+            p1 = net_positions.get(cfrom)
+            p2 = net_positions.get(cto)
+            if p1 and p2:
+                canvas.add_markup(SVGLine(p1["x"], p1["y"], p2["x"], p2["y"]).render())
+
+    # --------------------------------------------------
+    # Component symbols
+    # --------------------------------------------------
+
+    def _draw_components(
+        self,
+        canvas: SVGCanvas,
+        components: list,
+        placements: Dict,
         solution: Dict
-    ) -> schemdraw.Drawing:
-        circuit_type = blueprint.get("circuit_type", "")
+    ) -> None:
+        for comp in components:
+            cid = comp.get("id", "")
+            ctype = comp.get("type", "")
+            placement = placements.get(cid)
 
-        if circuit_type in SERIES_CIRCUITS:
-            return self._draw_series(blueprint)
-        elif circuit_type in PARALLEL_CIRCUITS:
-            return self._draw_parallel(blueprint)
-        elif circuit_type == "wheatstone_bridge":
-            return self._draw_bridge(blueprint)
-        elif circuit_type == "meter_bridge":
-            return self._draw_meter_bridge(blueprint)
-        else:
-            raise ValueError(f"Unsupported circuit type: {circuit_type}")
+            if not placement:
+                continue
 
-    # ==========================================================
-    # Element factory
-    # ==========================================================
+            px = placement.get("x", 0)
+            py = placement.get("y", 0)
+            rotation = placement.get("angle", 0)
 
-    def _make_element(self, comp: Optional[Dict]) -> elm.Element:
-        if comp is None:
-            return elm.Line()
+            component = self.COMPONENT_FACTORY.get(ctype)
+            if component is None:
+                continue
 
+            label = comp.get("label", "")
+
+            value_text = self._get_value_text(comp, solution, cid)
+
+            state = comp.get("state", "closed")
+
+            markup = component.render(
+                x=px, y=py,
+                rotation=rotation,
+                label=label or None,
+                value=value_text,
+                voltage=comp.get("voltage"),
+                state=state
+            )
+            canvas.add_markup(markup)
+
+    def _get_value_text(self, comp: Dict, solution: Dict, cid: str) -> Optional[str]:
         ctype = comp.get("type", "")
-        label_text = comp.get("label", "")
-        voltage = comp.get("voltage")
-        resistance = comp.get("resistance")
-        length_cm = comp.get("length_cm")
+        if ctype == "resistor":
+            val = comp.get("resistance")
+            if val is not None:
+                return str(val)
+        elif ctype in ("battery", "cell"):
+            val = comp.get("voltage")
+            if val is not None:
+                return str(val)
 
-        if ctype == "battery":
-            txt = f"{label_text} {voltage}V" if voltage else (label_text or "Battery")
-            return elm.Battery().label(txt)
+        return None
 
-        elif ctype == "cell":
-            txt = f"{label_text} {voltage}V" if voltage else (label_text or "Cell")
-            return elm.BatteryCell().label(txt)
-
-        elif ctype == "switch":
-            return elm.Switch().label(label_text or "SW")
-
-        elif ctype == "key":
-            return elm.Switch().label(label_text or "K")
-
-        elif ctype == "bulb":
-            return elm.Lamp().label(label_text or "L")
-
-        elif ctype == "resistor":
-            txt = f"{label_text} {resistance}" + chr(937) if resistance else (label_text or "R")
-            return elm.Resistor().label(txt)
-
-        elif ctype == "variable_resistor":
-            return elm.ResistorVar().label(label_text or "Rvar")
-
-        elif ctype == "unknown_resistor":
-            return elm.Box().label(label_text or "X")
-
-        elif ctype == "ammeter":
-            return elm.MeterA().label(label_text or "A")
-
-        elif ctype == "voltmeter":
-            return elm.MeterV().label(label_text or "V")
-
-        elif ctype == "galvanometer":
-            return elm.MeterAnalog().label(label_text or "G")
-
-        elif ctype == "potentiometer":
-            return elm.Potentiometer().label(label_text or "Pot")
-
-        elif ctype == "wire":
-            wire_label = label_text or (f"{length_cm}cm" if length_cm else "")
-            return elm.Line().label(wire_label) if wire_label else elm.Line()
-
-        elif ctype in ("capacitor", "inductor", "ac_source"):
-            return elm.Line()
-
-        return elm.Line()
-
-    # ==========================================================
-    # Series drawing
-    # ==========================================================
-
-    def _draw_series(self, blueprint: Dict) -> schemdraw.Drawing:
-        d = schemdraw.Drawing()
-        comps = blueprint.get("components", [])
-        count = len(comps)
-
-        for comp in comps:
-            d += self._make_element(comp)
-
-        d += elm.Line().down()
-        d += elm.Line().left(d.unit * count)
-        d += elm.Line().up()
-
-        return d
-
-    # ==========================================================
-    # Parallel drawing
-    # ==========================================================
-
-    def _draw_parallel(self, blueprint: Dict) -> schemdraw.Drawing:
-        d = schemdraw.Drawing()
-        comps = blueprint.get("components", [])
-
-        # Source (battery/cell) first, then branches
-        ordered: list = []
-        for comp in comps:
-            if comp.get("type") in ("battery", "cell"):
-                ordered.insert(0, comp)
-            else:
-                ordered.append(comp)
-
-        if not ordered:
-            return d
-
-        d += self._make_element(ordered[0])
-        d.push()
-
-        for comp in ordered[1:]:
-            d.push()
-            d += elm.Line().right()
-            d += self._make_element(comp)
-            d += elm.Line().left()
-            d.pop()
-
-        return d
-
-    # ==========================================================
-    # Wheatstone bridge drawing
-    # ==========================================================
-
-    def _draw_bridge(self, blueprint: Dict) -> schemdraw.Drawing:
-        d = schemdraw.Drawing()
-        comps = blueprint.get("components", [])
-        lookup = {c["id"]: c for c in comps}
-
-        batt = None
-        galv = None
-        rest = []
-        for c in comps:
-            if c["type"] in ("battery", "cell"):
-                batt = c
-            elif c["type"] == "galvanometer":
-                galv = c
-            else:
-                rest.append(c)
-
-        rmap = {r["id"]: r for r in rest}
-
-        p = rmap.get("P", rest[0] if len(rest) > 0 else None)
-        q = rmap.get("Q", rest[1] if len(rest) > 1 else None)
-        r = rmap.get("R", rest[2] if len(rest) > 2 else None)
-        s = rmap.get("S", rest[3] if len(rest) > 3 else None)
-
-        d += self._make_element(p).right().label("P")
-        d += self._make_element(q).down().label("Q")
-
-        d.push()
-        if r:
-            d += self._make_element(r).up().label("R")
-        d.pop()
-
-        if s:
-            d += self._make_element(s).left().label("S")
-
-        if galv:
-            d += self._make_element(galv)
-
-        if batt:
-            d += self._make_element(batt)
-
-        return d
-
-    # ==========================================================
-    # Meter bridge drawing
-    # ==========================================================
-
-    def _draw_meter_bridge(self, blueprint: Dict) -> schemdraw.Drawing:
-        d = schemdraw.Drawing()
-        comps = blueprint.get("components", [])
-
-        drawn_wire = False
-        for comp in comps:
-            if comp.get("type") == "wire" and not drawn_wire:
-                lbl = comp.get("label", "")
-                length = comp.get("length_cm", "")
-                label_text = lbl or (f"{length} cm" if length else "")
-                if label_text:
-                    d += elm.Line().right(8).label(label_text)
-                else:
-                    d += elm.Line().right(8)
-                drawn_wire = True
-                break
-
-        if not drawn_wire:
-            d += elm.Line().right(6).label("Meter Wire")
-
-        return d
-
-    # ==========================================================
+    # --------------------------------------------------
     # File output
-    # ==========================================================
+    # --------------------------------------------------
 
     def render_to_file(
         self,
@@ -230,8 +180,8 @@ class CircuitRenderer:
         solution: Dict,
         output_path: str
     ) -> str:
-        drawing = self.render(blueprint, layout, solution)
-        drawing.save(output_path)
+        svg_markup = self.render(blueprint, layout, solution)
+        Path(output_path).write_text(svg_markup, encoding="utf-8")
         return output_path
 
 
@@ -254,7 +204,7 @@ if __name__ == "__main__":
     output_dir.mkdir(exist_ok=True)
 
     print("=" * 64)
-    print("  CIRCUIT RENDER TEST")
+    print("  CIRCUIT RENDER TEST (CUSTOM SVG)")
     print("=" * 64)
 
     all_ok = True
@@ -269,6 +219,8 @@ if __name__ == "__main__":
             print(f"  {qid} -> {file_path}")
         except Exception as e:
             print(f"  {qid} FAILED: {e}")
+            import traceback
+            traceback.print_exc()
             all_ok = False
 
     print(f"\n{'=' * 64}")
