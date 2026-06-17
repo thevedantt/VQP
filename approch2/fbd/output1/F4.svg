@@ -1,0 +1,56 @@
+
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="800"
+         height="600">
+
+         
+    <line x1="250"
+          y1="400"
+          x2="550"
+          y2="250"
+          stroke="black"
+          stroke-width="4"/>
+
+    <rect x="380"
+          y="250"
+          width="70"
+          height="70"
+          fill="none"
+          stroke="black"
+          stroke-width="3"/>
+    
+    <line x1="400" y1="300"
+          x2="340" y2="220"
+          stroke="black"
+          stroke-width="3"/>
+
+    <circle cx="340"
+            cy="220"
+            r="4"
+            fill="black"/>
+
+    <text x="350"
+          y="210"
+          font-size="18">
+          N
+    </text>
+    
+    <line x1="400" y1="300"
+          x2="400" y2="430"
+          stroke="black"
+          stroke-width="3"/>
+
+    <circle cx="400"
+            cy="430"
+            r="4"
+            fill="black"/>
+
+    <text x="410"
+          y="420"
+          font-size="18">
+          mg
+    </text>
+    
+
+    </svg>
+    
