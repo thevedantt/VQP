@@ -29,11 +29,8 @@ class CircuitCompiler:
             }
 
         topology = self.topologist.build(blueprint)
-
         layout = self.layout_engine.generate(topology, blueprint)
-
         solution = self.solver.solve(blueprint, topology)
-
         drawing = self.renderer.render(blueprint, layout, solution)
 
         return {
@@ -47,11 +44,7 @@ class CircuitCompiler:
             "drawing": drawing
         }
 
-    def compile_to_svg(
-        self,
-        blueprint: Dict,
-        output_path: Optional[str] = None
-    ) -> Dict:
+    def compile_to_svg(self, blueprint: Dict, output_path: Optional[str] = None) -> Dict:
         result = self.compile(blueprint)
 
         if result["status"] == "FAILED":
@@ -60,13 +53,10 @@ class CircuitCompiler:
         if output_path is None:
             output_path = f"{result['blueprint_id']}.svg"
 
-        drawing = result["drawing"]
-        drawing.save(output_path)
+        result["drawing"].save(output_path)
+        result["output_file"] = output_path
 
-        return {
-            **result,
-            "output_file": output_path
-        }
+        return result
 
 
 if __name__ == "__main__":
@@ -88,10 +78,6 @@ if __name__ == "__main__":
         print("=" * 60)
         qid = bp.get("question_id", "?")
 
-        if bp.get("schema_version") != "2.0":
-            print(f"{qid} SKIPPED (schema_version != 2.0)")
-            continue
-
         result = compiler.compile_to_svg(
             bp,
             str(output_dir / f"{qid}.svg")
@@ -105,9 +91,10 @@ if __name__ == "__main__":
             continue
 
         topo = result["topology"]
-        print(f"  Nets: {topo['net_count']}, Components: {topo['component_count']}")
+        soln = result["solution"]
+        print(f"  Nodes: {topo['node_count']}, Components: {topo['component_count']}")
         print(f"  Layout: {result['layout']['layout_type']}")
-        print(f"  Solution: {result['solution'].get('circuit_mode', '?')}")
+        print(f"  Solution mode: {soln.get('circuit_mode', '?')}")
         print(f"  Output: {result['output_file']}")
 
     print("\n" + "=" * 60)

@@ -1,119 +1,102 @@
-from typing import Dict
+from typing import Dict, List
 
 
 class CircuitTopology:
 
     def build(self, blueprint: Dict) -> Dict:
-        nets = {n["id"]: {"id": n["id"], "components": []} for n in blueprint["nets"]}
+        nodes = blueprint["nodes"]
+        components_raw = blueprint["components"]
+
+        adjacency = {nid: [] for nid in nodes}
         components = {}
 
-        for comp in blueprint["components"]:
-            comp_id = comp["id"]
+        for comp in components_raw:
+            cid = comp["id"]
+            ctype = comp["type"]
+            cfrom = comp.get("from")
+            cto = comp.get("to")
+
             comp_entry = {
-                "id": comp_id,
-                "type": comp["type"],
-                "value": comp.get("value"),
-                "units": comp.get("units"),
-                "terminals": [],
-                "connected_nets": set()
+                "id": cid,
+                "type": ctype,
+                "from": cfrom,
+                "to": cto
             }
 
-            for term in comp["terminals"]:
-                net_id = term["net"]
-                comp_entry["terminals"].append({
-                    "id": term["id"],
-                    "net": net_id,
-                    "role": term.get("role")
-                })
-                comp_entry["connected_nets"].add(net_id)
+            for attr in ("voltage", "resistance", "length_cm", "state", "label"):
+                if attr in comp:
+                    comp_entry[attr] = comp[attr]
 
-                if net_id in nets:
-                    nets[net_id]["components"].append({
-                        "component_id": comp_id,
-                        "terminal_id": term["id"],
-                        "role": term.get("role")
-                    })
+            components[cid] = comp_entry
 
-            comp_entry["connected_nets"] = sorted(comp_entry["connected_nets"])
-            components[comp_id] = comp_entry
+            if cfrom in adjacency:
+                adjacency[cfrom].append(cid)
+            if cto in adjacency:
+                adjacency[cto].append(cid)
 
-        adjacency_list = {}
-        for net_id, net_data in nets.items():
-            adjacency_list[net_id] = {
-                "component_ids": list(set(
-                    c["component_id"] for c in net_data["components"]
-                ))
-            }
+        net_connectivity = {}
+        for comp in components_raw:
+            cid = comp["id"]
+            cfrom = comp.get("from")
+            cto = comp.get("to")
+            if cfrom and cto:
+                key = frozenset([cfrom, cto])
+                if key not in net_connectivity:
+                    net_connectivity[key] = []
+                net_connectivity[key].append(cid)
 
-        for comp_id, comp_data in components.items():
-            adjacency_list[comp_id] = {
-                "net_ids": comp_data["connected_nets"]
-            }
-
-        circuit_type = blueprint["circuit_type"]
-
-        return {
-            "circuit_type": circuit_type,
-            "question_id": blueprint["question_id"],
-            "nets": nets,
-            "components": components,
-            "adjacency_list": adjacency_list,
-            "net_count": len(nets),
-            "component_count": len(components),
-            "topology_classification": self._classify_topology(
-                nets, components, circuit_type
-            )
-        }
-
-    def _classify_topology(
-        self,
-        nets: Dict,
-        components: Dict,
-        circuit_type: str
-    ) -> Dict:
-        component_count = len(components)
-        net_count = len(nets)
         parallel_groups = []
-        series_chains = []
-
-        net_to_comps = {}
-        for nid, ndata in nets.items():
-            comp_ids = list(set(c["component_id"] for c in ndata["components"]))
-            if comp_ids:
-                net_to_comps[nid] = comp_ids
-
-        comp_pairs = {}
-        for nid, comp_ids in net_to_comps.items():
-            if len(comp_ids) >= 2:
-                for i in range(len(comp_ids)):
-                    for j in range(i + 1, len(comp_ids)):
-                        pair = tuple(sorted([comp_ids[i], comp_ids[j]]))
-                        if pair not in comp_pairs:
-                            comp_pairs[pair] = []
-                        comp_pairs[pair].append(nid)
-
-        for pair, shared_nets in comp_pairs.items():
-            if len(shared_nets) >= 2:
+        for (n1, n2), comps in net_connectivity.items():
+            if len(comps) > 1:
                 parallel_groups.append({
-                    "components": list(pair),
-                    "shared_nets": shared_nets
+                    "nodes": [n1, n2] if not isinstance(n1, str) else list({n1, n2}),
+                    "component_ids": comps
                 })
 
-        for comp_id, comp_data in components.items():
-            comp_nets = comp_data["connected_nets"]
-            if len(comp_nets) == 2:
-                series_chains.append({
-                    "component_id": comp_id,
-                    "net_a": comp_nets[0],
-                    "net_b": comp_nets[1]
-                })
+        node_order = self._order_nodes(nodes, adjacency, components)
 
         return {
+            "circuit_type": blueprint["circuit_type"],
+            "question_id": blueprint["question_id"],
+            "nodes": nodes,
+            "components": components,
+            "adjacency": adjacency,
+            "node_order": node_order,
             "parallel_groups": parallel_groups,
-            "series_connections": series_chains,
-            "component_count": component_count,
-            "net_count": net_count
+            "node_count": len(nodes),
+            "component_count": len(components)
         }
+
+    def _order_nodes(self, nodes: List[str], adjacency: Dict, components: Dict) -> List[str]:
+        if not nodes:
+            return []
+
+        def neighbors(nid):
+            result = []
+            for comp_id in adjacency.get(nid, []):
+                comp = components.get(comp_id)
+                if comp:
+                    other = comp["to"] if comp["from"] == nid else comp["from"]
+                    if other and other in adjacency:
+                        result.append(other)
+            return result
+
+        visited = set()
+        order = []
+
+        def dfs(nid):
+            if nid in visited:
+                return
+            visited.add(nid)
+            order.append(nid)
+            for nb in neighbors(nid):
+                dfs(nb)
+
+        for nid in nodes:
+            if nid not in visited:
+                dfs(nid)
+
+        return order
 
 
 if __name__ == "__main__":
@@ -129,7 +112,11 @@ if __name__ == "__main__":
     for bp in blueprints:
         result = topology.build(bp)
         print("=" * 60)
-        print(result["question_id"], f"({result['circuit_type']})")
-        print(f"  Nets: {result['net_count']}, Components: {result['component_count']}")
-        print(f"  Topology: {result['topology_classification']}")
-        print(f"  Adjacency: {result['adjacency_list']}")
+        print(f"{result['question_id']} ({result['circuit_type']})")
+        print(f"  Nodes: {result['node_count']}, Components: {result['component_count']}")
+        print(f"  Node order: {result['node_order']}")
+        print(f"  Components:")
+        for cid, cdata in result["components"].items():
+            print(f"    {cid}: {cdata['type']} {cdata['from']}->{cdata['to']}")
+        if result["parallel_groups"]:
+            print(f"  Parallel groups: {result['parallel_groups']}")

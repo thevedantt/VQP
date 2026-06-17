@@ -2,7 +2,9 @@ from typing import Dict
 
 from circuit_rules import (
     DEFAULT_BULB_RESISTANCE,
-    DEFAULT_UNKNOWN_RESISTANCE
+    DEFAULT_UNKNOWN_RESISTANCE,
+    SERIES_CIRCUITS,
+    PARALLEL_CIRCUITS
 )
 
 
@@ -12,48 +14,31 @@ class CircuitSolver:
         circuit_type = blueprint["circuit_type"]
         components = topology["components"]
 
-        if circuit_type in {
-            "simple_series",
-            "series_resistors",
-            "three_resistor_series",
-            "ammeter_series",
-            "cell_key_bulb"
-        }:
+        if circuit_type in SERIES_CIRCUITS:
             return self._solve_series(blueprint, components)
-
-        elif circuit_type in {
-            "parallel_resistors",
-            "three_parallel",
-            "voltmeter_parallel"
-        }:
+        elif circuit_type in PARALLEL_CIRCUITS:
             return self._solve_parallel(blueprint, components)
-
         elif circuit_type == "wheatstone_bridge":
             return self._solve_bridge(blueprint, components)
-
         elif circuit_type == "meter_bridge":
             return self._solve_meter_bridge(blueprint, components)
 
         return {
             "circuit_mode": "unknown",
-            "message": f"No solver implemented for {circuit_type}"
+            "message": f"No solver for {circuit_type}"
         }
-
-    # --------------------------------------------------
-    # Helpers
-    # --------------------------------------------------
 
     def _get_voltage(self, blueprint: Dict) -> float:
         for comp in blueprint["components"]:
             if comp["type"] in ("battery", "cell"):
-                return float(comp.get("value", 0))
+                return float(comp.get("voltage", 0))
         return 0.0
 
-    def _get_passive_values(self, components: Dict) -> Dict:
+    def _get_resistances(self, components: Dict) -> Dict:
         values = {}
         for cid, cdata in components.items():
             ctype = cdata["type"]
-            raw = cdata.get("value")
+            raw = cdata.get("resistance")
             if ctype == "resistor":
                 values[cid] = float(raw) if raw is not None else 0
             elif ctype == "bulb":
@@ -62,13 +47,9 @@ class CircuitSolver:
                 values[cid] = float(raw) if raw is not None else DEFAULT_UNKNOWN_RESISTANCE
         return values
 
-    # --------------------------------------------------
-    # Series
-    # --------------------------------------------------
-
     def _solve_series(self, blueprint: Dict, components: Dict) -> Dict:
         voltage = self._get_voltage(blueprint)
-        resistances = self._get_passive_values(components)
+        resistances = self._get_resistances(components)
 
         req = sum(resistances.values()) if resistances else 0
         current = voltage / req if req > 0 else 0
@@ -85,13 +66,9 @@ class CircuitSolver:
             "voltage_drops": voltage_drops
         }
 
-    # --------------------------------------------------
-    # Parallel
-    # --------------------------------------------------
-
     def _solve_parallel(self, blueprint: Dict, components: Dict) -> Dict:
         voltage = self._get_voltage(blueprint)
-        resistances = self._get_passive_values(components)
+        resistances = self._get_resistances(components)
 
         inverse_sum = 0
         for rval in resistances.values():
@@ -113,21 +90,13 @@ class CircuitSolver:
             "branch_currents": branch_currents
         }
 
-    # --------------------------------------------------
-    # Wheatstone Bridge
-    # --------------------------------------------------
-
     def _solve_bridge(self, blueprint: Dict, components: Dict) -> Dict:
-        resistances = self._get_passive_values(components)
+        resistances = self._get_resistances(components)
         voltage = self._get_voltage(blueprint)
 
-        r_ids = list(resistances.keys())
-        if len(r_ids) >= 4:
-            p = resistances.get(r_ids[0], 0)
-            q = resistances.get(r_ids[1], 0)
-            r = resistances.get(r_ids[2], 0)
-            s = resistances.get(r_ids[3], 0)
-
+        rlist = list(resistances.values())
+        if len(rlist) >= 4:
+            p, q, r, s = rlist[0], rlist[1], rlist[2], rlist[3]
             is_balanced = abs(p / q - r / s) < 1e-6 if q > 0 and s > 0 else False
 
             return {
@@ -148,24 +117,19 @@ class CircuitSolver:
             "message": "Insufficient resistors for bridge analysis"
         }
 
-    # --------------------------------------------------
-    # Meter Bridge
-    # --------------------------------------------------
-
     def _solve_meter_bridge(self, blueprint: Dict, components: Dict) -> Dict:
-        resistances = self._get_passive_values(components)
+        resistances = self._get_resistances(components)
         voltage = self._get_voltage(blueprint)
 
         r_known = None
         r_unknown = None
-        wire_length = 100.0
 
         for cid, cdata in components.items():
             if cdata["type"] == "resistor":
-                r_known = float(cdata.get("value", 0))
+                r_known = float(cdata.get("resistance", 0))
             elif cdata["type"] == "unknown_resistor":
-                val = cdata.get("value")
-                r_unknown = float(val) if val else None
+                raw = cdata.get("resistance")
+                r_unknown = float(raw) if raw is not None else None
 
         if r_known is not None and r_unknown is not None:
             return {
@@ -174,14 +138,15 @@ class CircuitSolver:
                 "source_voltage": voltage,
                 "known_resistance": r_known,
                 "unknown_resistance": r_unknown,
-                "wire_length": wire_length,
-                "message": "Meter bridge analysis complete"
+                "message": "Meter bridge values provided"
             }
 
         return {
             "circuit_mode": "bridge",
             "bridge_type": "meter_bridge",
-            "message": "Meter bridge solver: missing resistance values"
+            "source_voltage": voltage,
+            "known_resistance": r_known,
+            "message": "Meter bridge: unknown resistance not set (it is the unknown to be found)"
         }
 
 
@@ -202,5 +167,6 @@ if __name__ == "__main__":
         topology = topologist.build(bp)
         result = solver.solve(bp, topology)
         print("=" * 60)
-        print(bp["question_id"], f"({bp['circuit_type']})")
-        print(result)
+        print(f"{bp['question_id']} ({bp['circuit_type']})")
+        for k, v in result.items():
+            print(f"  {k}: {v}")
