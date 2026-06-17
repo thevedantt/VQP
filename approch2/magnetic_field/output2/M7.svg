@@ -1,0 +1,48 @@
+
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="800" height="600"
+         font-family="Arial, sans-serif">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7"
+                refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth">
+          <polygon points="0 0, 10 3.5, 0 7" fill="black"/>
+        </marker>
+        <marker id="arrowSmall" markerWidth="8" markerHeight="6"
+                refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <polygon points="0 0, 8 3, 0 6" fill="black"/>
+        </marker>
+        <marker id="arrowBlue" markerWidth="10" markerHeight="7"
+                refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#1976d2"/>
+        </marker>
+      </defs>
+      <rect width="100%" height="100%" fill="white"/>
+    
+        <line x1="200" y1="180" x2="580" y2="180"
+              stroke="black" stroke-width="1.5"
+              marker-end="url(#arrow)"/>
+
+        <line x1="200" y1="220" x2="580" y2="220"
+              stroke="black" stroke-width="1.5"
+              marker-end="url(#arrow)"/>
+
+        <line x1="200" y1="260" x2="580" y2="260"
+              stroke="black" stroke-width="1.5"
+              marker-end="url(#arrow)"/>
+
+        <line x1="200" y1="300" x2="580" y2="300"
+              stroke="black" stroke-width="1.5"
+              marker-end="url(#arrow)"/>
+
+        <line x1="200" y1="340" x2="580" y2="340"
+              stroke="black" stroke-width="1.5"
+              marker-end="url(#arrow)"/>
+
+        <line x1="200" y1="380" x2="580" y2="380"
+              stroke="black" stroke-width="1.5"
+              marker-end="url(#arrow)"/>
+
+        <line x1="200" y1="420" x2="580" y2="420"
+              stroke="black" stroke-width="1.5"
+              marker-end="url(#arrow)"/>
+    </svg>
