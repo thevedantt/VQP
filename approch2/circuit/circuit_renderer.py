@@ -318,38 +318,46 @@ class CircuitRenderer:
     def _render_meter_bridge(self, comp_map, comp_vals, blueprint):
         d = schemdraw.Drawing()
         u = 2.0
-        s = 3.0 * u
+        w = 6.0 * u
 
         A = (0.0, 0.0)
-        J = (s, 0.0)
-        C = (s * 2, 0.0)
-        B = (s, -s)
-
-        for pt in [A, J, C, B]:
-            self._dot(d, pt[0], pt[1])
+        J = (w / 2.0, 0.0)
+        C = (w, 0.0)
+        B = (w / 2.0, -3.0 * u)
+        bot_y = -4.5 * u
 
         self._wire(d, A[0], A[1], J[0], J[1])
         self._wire(d, J[0], J[1], C[0], C[1])
+        d += elm.Label().at((w / 2.0, 0.6)).label("100 cm bridge wire")
 
         self._resistor(d, A[0], A[1], B[0], B[1], comp_vals.get("R", ""))
         self._resistor(d, B[0], B[1], C[0], C[1], comp_vals.get("X", "?"))
 
-        self._wire(d, J[0], J[1], B[0], B[1])
-        mid_g = self._mid(J[0], J[1], B[0], B[1])
-        d += elm.MeterAnalog().at(mid_g).theta(-90).label("G")
+        self._wire(d, B[0], B[1], J[0], J[1])
+        mid_g = self._mid(B[0], B[1], J[0], J[1])
+        d += elm.MeterAnalog().at(mid_g).theta(90).label("G")
 
-        bat_y = -s - u
-        self._wire(d, A[0], A[1], A[0], bat_y)
-        self._wire(d, C[0], C[1], C[0], bat_y)
-
-        cell_type = comp_map.get("CELL1", {}).get("type", "cell")
+        self._wire(d, A[0], A[1], A[0], bot_y)
         cell_val = comp_vals.get("CELL1", "")
+        cell_type = comp_map.get("CELL1", {}).get("type", "cell")
+        cell_w = 1.5 * u
         if cell_type == "cell":
-            self._battery(d, A[0], bat_y, C[0], bat_y, cell_val, cell=True)
+            self._battery(d, A[0], bot_y, A[0] + cell_w, bot_y, cell_val, cell=True)
         else:
-            self._battery(d, A[0], bat_y, C[0], bat_y, cell_val)
+            self._battery(d, A[0], bot_y, A[0] + cell_w, bot_y, cell_val)
+
+        kx1 = A[0] + cell_w + 0.3
+        kx2 = kx1 + 1.5 * u
+        self._switch(d, kx1, bot_y, kx2, bot_y, "K")
+
+        self._wire(d, kx2, bot_y, C[0], bot_y)
+        self._wire(d, C[0], bot_y, C[0], C[1])
+
+        for pt in [A, J, C, B]:
+            self._dot(d, pt[0], pt[1])
 
         self._jockey(d, J[0], J[1], "down", 0.8)
+        d += elm.Label().at((J[0] + 0.4, J[1] - 0.3)).label("J")
 
         return d
 
@@ -360,46 +368,56 @@ class CircuitRenderer:
     def _render_potentiometer(self, comp_map, comp_vals, blueprint):
         d = schemdraw.Drawing()
         u = 2.0
-        s = 3.0 * u
+        w = 5.0 * u
 
         A = (0.0, 0.0)
-        J = (s, 0.0)
-        C = (s * 2, 0.0)
-        B = (0.0, -s)
-        D = (s, s)
-
-        for pt in [A, J, C, B, D]:
-            self._dot(d, pt[0], pt[1])
+        J = (w / 2.0, 0.0)
+        C = (w, 0.0)
+        pry = -2.5 * u
+        sec_y = -4.5 * u
+        B = (J[0], sec_y)
 
         self._wire(d, A[0], A[1], J[0], J[1])
         self._wire(d, J[0], J[1], C[0], C[1])
 
-        self._wire(d, A[0], A[1], D[0], D[1])
-        self._wire(d, D[0], D[1], C[0], C[1])
+        self._wire(d, A[0], A[1], A[0], pry)
+        cell_val = comp_vals.get("CELL1", "")
+        cell_type = comp_map.get("CELL1", {}).get("type", "cell")
+        cw = 1.5 * u
+        if cell_type == "cell":
+            self._battery(d, A[0], pry, A[0] + cw, pry, cell_val, cell=True)
+        else:
+            self._battery(d, A[0], pry, A[0] + cw, pry, cell_val)
+
+        kx1 = A[0] + cw + 0.3
+        kx2 = kx1 + 1.5 * u
+        self._switch(d, kx1, pry, kx2, pry, "K")
+
+        rx1 = kx2 + 0.3
+        self._resistor(d, rx1, pry, C[0], pry, comp_vals.get("RH", ""))
+        self._wire(d, C[0], pry, C[0], C[1])
 
         self._wire(d, J[0], J[1], B[0], B[1])
         mid_g = self._mid(J[0], J[1], B[0], B[1])
-        d += elm.MeterAnalog().at(mid_g).theta(45).label("G")
+        d += elm.MeterAnalog().at(mid_g).theta(90).label("G")
 
-        cell_type = comp_map.get("CELL2", {}).get("type", "cell")
-        cell_val = comp_vals.get("CELL2", "")
-        if cell_type == "cell":
-            self._battery(d, B[0], B[1], A[0], A[1], cell_val, cell=True)
+        self._wire(d, B[0], B[1], A[0], B[1])
+        cell2_val = comp_vals.get("CELL2", "")
+        cell2_type = comp_map.get("CELL2", {}).get("type", "cell")
+        if cell2_type == "cell":
+            self._battery(d, A[0], B[1], A[0], A[1], cell2_val, cell=True)
         else:
-            self._battery(d, B[0], B[1], A[0], A[1], cell_val)
+            self._battery(d, A[0], B[1], A[0], A[1], cell2_val)
 
-        cell1_type = comp_map.get("CELL1", {}).get("type", "cell")
-        cell1_val = comp_vals.get("CELL1", "")
-        mid_x, mid_y = self._mid(A[0], A[1], D[0], D[1])
-        if cell1_type == "cell":
-            self._battery(d, A[0], A[1], D[0], D[1], cell1_val, cell=True)
-        else:
-            self._battery(d, A[0], A[1], D[0], D[1], cell1_val)
+        d += elm.Label().at((A[0] - 0.3, A[1])).label("A")
+        d += elm.Label().at((C[0] + 0.3, C[1])).label("C")
+        d += elm.Label().at((B[0] + 0.4, B[1])).label("B")
 
-        mid_x2, mid_y2 = self._mid(D[0], D[1], C[0], C[1])
-        self._resistor(d, D[0], D[1], C[0], C[1], comp_vals.get("RH", ""))
+        for pt in [A, J, C, B]:
+            self._dot(d, pt[0], pt[1])
 
-        self._jockey(d, J[0], J[1], "up", 0.8)
+        self._jockey(d, J[0], J[1], "down", 0.8)
+        d += elm.Label().at((J[0] + 0.4, J[1] - 0.3)).label("J")
 
         return d
 
