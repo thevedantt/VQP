@@ -1,187 +1,416 @@
-"""
-circuit_renderer.py
-
-Custom SVG-based renderer.
-Uses SVG primitives + circuit component library instead of Schemdraw.
-
-Responsibility: layout + solution → SVG markup.
-Does NOT calculate physics, does NOT validate, does NOT build topology.
-"""
-
 from pathlib import Path
 from typing import Dict, Optional
+from math import atan2, degrees
 
-from svg.svg_canvas import SVGCanvas
-from svg.svg_line import SVGLine
-from svg.svg_circle import SVGCircle
-from svg.svg_text import SVGText
-
-from components.wire import Wire
-from components.resistor import Resistor
-from components.battery import Battery
-from components.cell import Cell
-from components.bulb import Bulb
-from components.switch import Switch
-from components.ammeter import Ammeter
-from components.voltmeter import Voltmeter
-from components.galvanometer import Galvanometer
-from components.potentiometer import Potentiometer
-
-from circuit_rules import SERIES_CIRCUITS, PARALLEL_CIRCUITS
+import schemdraw
+import schemdraw.elements as elm
 
 
 class CircuitRenderer:
 
-    NODE_DOT_R = 3
-
-    COMPONENT_FACTORY = {
-        "battery": Battery(),
-        "cell": Cell(),
-        "resistor": Resistor(),
-        "variable_resistor": Resistor(),
-        "unknown_resistor": Resistor(),
-        "bulb": Bulb(),
-        "switch": Switch(),
-        "key": Switch(),
-        "ammeter": Ammeter(),
-        "voltmeter": Voltmeter(),
-        "galvanometer": Galvanometer(),
-        "potentiometer": Potentiometer(),
-        "wire": Wire()
-    }
-
-    MARGIN = 40
-
     def render(self, blueprint: Dict, layout: Dict, solution: Dict) -> str:
-        canvas = SVGCanvas()
+        circuit_type = blueprint.get("circuit_type", "")
+        comp_list = blueprint.get("components", [])
+        comp_map = {c["id"]: c for c in comp_list}
 
-        net_positions = layout.get("net_positions", {})
-        placements = layout.get("component_placements", {})
-        components = blueprint.get("components", [])
-        solution_data = solution or {}
-        bounds = layout.get("bounds", {})
+        dispatch = {
+            "series": self._render_series,
+            "ammeter_series": self._render_series,
+            "parallel": self._render_parallel,
+            "voltmeter_parallel": self._render_voltmeter_parallel,
+            "wheatstone_bridge": self._render_wheatstone_bridge,
+            "meter_bridge": self._render_meter_bridge,
+            "potentiometer": self._render_potentiometer,
+        }
 
-        if bounds:
-            min_x = bounds.get("min_x", 0) - self.MARGIN
-            min_y = bounds.get("min_y", 0) - self.MARGIN
-            w = bounds.get("width", 400) + self.MARGIN * 2
-            h = bounds.get("height", 300) + self.MARGIN * 2
-            canvas.width = w
-            canvas.height = h
-            canvas.viewbox = f"{min_x} {min_y} {w} {h}"
+        render_fn = dispatch.get(circuit_type)
+        if render_fn is None:
+            raise ValueError(f"No schemdraw renderer for '{circuit_type}'")
 
-        self._draw_nodes(canvas, net_positions)
-        self._draw_interconnects(canvas, net_positions, components)
-        self._draw_components(canvas, components, placements, solution_data)
+        comp_vals = {}
+        for c in comp_list:
+            v = self._component_value(c)
+            if v:
+                comp_vals[c["id"]] = v
 
-        return canvas.render()
+        d = render_fn(comp_map, comp_vals, blueprint)
+        return d._repr_svg_()
 
-    # --------------------------------------------------
-    # Node dots
-    # --------------------------------------------------
+    # ----------------------------------------------------------
+    # Helpers
+    # ----------------------------------------------------------
 
-    def _draw_nodes(self, canvas: SVGCanvas, net_positions: Dict) -> None:
-        r = self.NODE_DOT_R
-        for nid, pos in net_positions.items():
-            canvas.add_markup(SVGCircle(pos["x"], pos["y"], r, fill="black").render())
-
-    # --------------------------------------------------
-    # Wires between nodes
-    # --------------------------------------------------
-
-    def _draw_interconnects(
-        self,
-        canvas: SVGCanvas,
-        net_positions: Dict,
-        components: list
-    ) -> None:
-        drawn_pairs = set()
-
-        for comp in components:
-            cfrom = comp.get("from", "")
-            cto = comp.get("to", "")
-            if not cfrom or not cto:
-                continue
-
-            pair = frozenset([cfrom, cto])
-            if pair in drawn_pairs:
-                continue
-            drawn_pairs.add(pair)
-
-            p1 = net_positions.get(cfrom)
-            p2 = net_positions.get(cto)
-            if p1 and p2:
-                canvas.add_markup(SVGLine(p1["x"], p1["y"], p2["x"], p2["y"]).render())
-
-    # --------------------------------------------------
-    # Component symbols
-    # --------------------------------------------------
-
-    def _draw_components(
-        self,
-        canvas: SVGCanvas,
-        components: list,
-        placements: Dict,
-        solution: Dict
-    ) -> None:
-        for comp in components:
-            cid = comp.get("id", "")
-            ctype = comp.get("type", "")
-            placement = placements.get(cid)
-
-            if not placement:
-                continue
-
-            px = placement.get("x", 0)
-            py = placement.get("y", 0)
-            rotation = placement.get("angle", 0)
-
-            component = self.COMPONENT_FACTORY.get(ctype)
-            if component is None:
-                continue
-
-            label = comp.get("label", "")
-
-            value_text = self._get_value_text(comp, solution, cid)
-
-            state = comp.get("state", "closed")
-
-            markup = component.render(
-                x=px, y=py,
-                rotation=rotation,
-                label=label or None,
-                value=value_text,
-                voltage=comp.get("voltage"),
-                state=state
-            )
-            canvas.add_markup(markup)
-
-    def _get_value_text(self, comp: Dict, solution: Dict, cid: str) -> Optional[str]:
+    def _component_value(self, comp: Dict) -> Optional[str]:
         ctype = comp.get("type", "")
         if ctype == "resistor":
-            val = comp.get("resistance")
-            if val is not None:
-                return str(val)
-        elif ctype in ("battery", "cell"):
-            val = comp.get("voltage")
-            if val is not None:
-                return str(val)
-
+            v = comp.get("resistance")
+            return f"{v}\u03A9" if v is not None else None
+        if ctype == "unknown_resistor":
+            return "?"
+        if ctype == "bulb":
+            v = comp.get("resistance")
+            return f"{v}\u03A9" if v is not None else None
+        if ctype in ("battery", "cell"):
+            v = comp.get("voltage")
+            return f"{v}V" if v is not None else None
         return None
 
-    # --------------------------------------------------
-    # File output
-    # --------------------------------------------------
+    def _theta(self, x1, y1, x2, y2):
+        return degrees(atan2(y2 - y1, x2 - x1))
 
-    def render_to_file(
-        self,
-        blueprint: Dict,
-        layout: Dict,
-        solution: Dict,
-        output_path: str
-    ) -> str:
+    def _mid(self, x1, y1, x2, y2):
+        return ((x1 + x2) / 2, (y1 + y2) / 2)
+
+    def _dot(self, d, x, y, r=0.08):
+        d += elm.Dot(radius=r).at((x, y))
+
+    def _wire(self, d, x1, y1, x2, y2):
+        if x1 == x2 and y1 == y2:
+            return
+        d += elm.Line().at((x1, y1)).to((x2, y2))
+
+    def _resistor(self, d, x1, y1, x2, y2, label="", reverse=False):
+        el = elm.Resistor().at((x1, y1)).to((x2, y2))
+        if reverse:
+            el = el.reverse()
+        if label:
+            el = el.label(label)
+        d += el
+
+    def _battery(self, d, x1, y1, x2, y2, label="", cell=False):
+        el = (elm.BatteryCell() if cell else elm.Battery()).at((x1, y1)).to((x2, y2))
+        if label:
+            el = el.label(label)
+        d += el
+
+    def _switch(self, d, x1, y1, x2, y2, label="", state="closed"):
+        if state == "open":
+            d += elm.Line().at((x1, y1)).to((x2, y2))
+            return
+        el = elm.Switch().at((x1, y1)).to((x2, y2))
+        if label:
+            el = el.label(label)
+        d += el
+
+    def _lamp(self, d, x1, y1, x2, y2, label=""):
+        el = elm.Lamp().at((x1, y1)).to((x2, y2))
+        if label:
+            el = el.label(label)
+        d += el
+
+    def _meter(self, d, x1, y1, x2, y2, meter_type="A", label=""):
+        el_map = {"A": elm.MeterA, "V": elm.MeterV, "G": elm.MeterAnalog}
+        cls = el_map.get(meter_type, elm.MeterAnalog)
+        el = cls().at((x1, y1)).to((x2, y2))
+        if label:
+            el = el.label(label)
+        d += el
+
+    def _jockey(self, d, x, y, direction="down", size=0.5):
+        if direction == "down":
+            d += elm.Arrow().at((x, y)).down().length(size)
+        else:
+            d += elm.Arrow().at((x, y)).up().length(size)
+
+    # ----------------------------------------------------------
+    # SERIES (C1, C2, C3, C6, C8)
+    # ----------------------------------------------------------
+
+    def _render_series(self, comp_map, comp_vals, blueprint):
+        d = schemdraw.Drawing()
+        components = blueprint.get("components", [])
+        u = 2.0
+        n = len(components)
+        total_w = (n + 1) * u
+        y = 0.0
+
+        node_x = [i * u for i in range(n + 1)]
+
+        for i in range(n + 1):
+            self._dot(d, node_x[i], y)
+
+        for i, comp in enumerate(components):
+            cid = comp["id"]
+            ctype = comp["type"]
+            val = comp_vals.get(cid, "")
+            x1, x2 = node_x[i], node_x[i + 1]
+            if ctype in ("battery",):
+                self._battery(d, x1, y, x2, y, val)
+            elif ctype in ("cell",):
+                self._battery(d, x1, y, x2, y, val, cell=True)
+            elif ctype == "resistor":
+                self._resistor(d, x1, y, x2, y, val)
+            elif ctype == "unknown_resistor":
+                self._resistor(d, x1, y, x2, y, "?")
+            elif ctype == "bulb":
+                self._lamp(d, x1, y, x2, y, val)
+            elif ctype in ("switch", "key"):
+                state = comp.get("state", "closed")
+                lbl = "SW" if ctype == "switch" else "K"
+                self._switch(d, x1, y, x2, y, lbl, state)
+            elif ctype == "ammeter":
+                d += elm.MeterA().at((x1, y)).to((x2, y)).label("A")
+            elif ctype == "voltmeter":
+                d += elm.MeterV().at((x1, y)).to((x2, y)).label("V")
+            elif ctype == "galvanometer":
+                d += elm.MeterAnalog().at((x1, y)).to((x2, y)).label("G")
+            else:
+                d += elm.Line().at((x1, y)).to((x2, y))
+
+        bot_y = y - u
+        self._wire(d, node_x[n], y, node_x[n], bot_y)
+        self._wire(d, node_x[n], bot_y, node_x[0], bot_y)
+        self._wire(d, node_x[0], bot_y, node_x[0], y)
+
+        return d
+
+    # ----------------------------------------------------------
+    # PARALLEL (C4, C5)
+    # ----------------------------------------------------------
+
+    def _render_parallel(self, comp_map, comp_vals, blueprint):
+        d = schemdraw.Drawing()
+        components = blueprint.get("components", [])
+        u = 2.0
+
+        branch_ids = []
+        source_id = None
+        for c in components:
+            if c["type"] in ("battery", "cell"):
+                source_id = c["id"]
+            else:
+                branch_ids.append(c["id"])
+
+        source = comp_map.get(source_id, {})
+        source_type = source.get("type", "battery")
+        source_label = comp_vals.get(source_id, "")
+        n = len(branch_ids)
+
+        top_y = u
+        bot_y = -u
+        start_x = 0.0
+        spacing = 3.0
+
+        for i, cid in enumerate(branch_ids):
+            cx = start_x + i * spacing
+            ctype = comp_map[cid]["type"]
+            val = comp_vals.get(cid, "")
+
+            self._dot(d, cx, top_y)
+            self._dot(d, cx, bot_y)
+
+            if ctype == "resistor":
+                self._resistor(d, cx, top_y, cx, bot_y, val)
+            elif ctype == "bulb":
+                self._lamp(d, cx, top_y, cx, bot_y, val)
+            elif ctype == "voltmeter":
+                d += elm.MeterV().at((cx, top_y)).to((cx, bot_y)).label("V")
+            elif ctype == "ammeter":
+                d += elm.MeterA().at((cx, top_y)).to((cx, bot_y)).label("A")
+            elif ctype == "galvanometer":
+                d += elm.MeterAnalog().at((cx, top_y)).to((cx, bot_y)).label("G")
+            else:
+                self._wire(d, cx, top_y, cx, bot_y)
+
+            if i > 0:
+                prev_cx = start_x + (i - 1) * spacing
+                self._wire(d, prev_cx, top_y, cx, top_y)
+                self._wire(d, prev_cx, bot_y, cx, bot_y)
+
+        src_x = start_x - spacing
+        self._wire(d, src_x, top_y, start_x, top_y)
+        self._wire(d, src_x, bot_y, start_x, bot_y)
+        if source_type in ("battery",):
+            self._battery(d, src_x, top_y, src_x, bot_y, source_label)
+        else:
+            self._battery(d, src_x, top_y, src_x, bot_y, source_label, cell=True)
+
+        return d
+
+    # ----------------------------------------------------------
+    # VOLTMETER PARALLEL (C7)
+    # ----------------------------------------------------------
+
+    def _render_voltmeter_parallel(self, comp_map, comp_vals, blueprint):
+        d = schemdraw.Drawing()
+        u = 2.0
+
+        bat_id = None
+        res_id = None
+        volt_id = None
+        for cid, comp in comp_map.items():
+            if comp["type"] in ("battery", "cell"):
+                bat_id = cid
+            elif comp["type"] == "resistor":
+                res_id = cid
+            elif comp["type"] == "voltmeter":
+                volt_id = cid
+
+        bat_val = comp_vals.get(bat_id, "")
+        res_val = comp_vals.get(res_id, "")
+
+        top_y = u
+        bot_y = -u
+        bat_top = (0, top_y)
+        bat_bot = (0, bot_y)
+
+        if comp_map.get(bat_id, {}).get("type") == "cell":
+            self._battery(d, bat_top[0], bat_top[1], bat_bot[0], bat_bot[1], bat_val, cell=True)
+        else:
+            self._battery(d, bat_top[0], bat_top[1], bat_bot[0], bat_bot[1], bat_val)
+
+        self._dot(d, bat_top[0], bat_top[1])
+        self._dot(d, bat_bot[0], bat_bot[1])
+
+        r_x = 2 * u
+        self._wire(d, bat_top[0], bat_top[1], r_x, bat_top[1])
+        self._dot(d, r_x, bat_top[1])
+        self._resistor(d, r_x, bat_top[1], r_x, bat_bot[1], res_val)
+        self._dot(d, r_x, bat_bot[1])
+        self._wire(d, r_x, bat_bot[1], bat_bot[0], bat_bot[1])
+
+        v_x = 4 * u
+        self._wire(d, bat_top[0], bat_top[1], v_x, bat_top[1])
+        self._dot(d, v_x, bat_top[1])
+        d += elm.MeterV().at((v_x, bat_top[1])).to((v_x, bat_bot[1])).label("V")
+        self._dot(d, v_x, bat_bot[1])
+        self._wire(d, v_x, bat_bot[1], bat_bot[0], bat_bot[1])
+
+        return d
+
+    # ----------------------------------------------------------
+    # WHEATSTONE BRIDGE (C9)
+    # ----------------------------------------------------------
+
+    def _render_wheatstone_bridge(self, comp_map, comp_vals, blueprint):
+        d = schemdraw.Drawing()
+        u = 2.0
+        s = 2.0 * u
+
+        A = (0, s)
+        B = (-s, 0)
+        C = (s, 0)
+        D = (0, -s)
+
+        for pt in [A, B, C, D]:
+            self._dot(d, pt[0], pt[1])
+
+        self._resistor(d, A[0], A[1], B[0], B[1], comp_vals.get("P", ""))
+        self._resistor(d, B[0], B[1], D[0], D[1], comp_vals.get("Q", ""))
+        self._resistor(d, A[0], A[1], C[0], C[1], comp_vals.get("R", ""))
+        self._resistor(d, C[0], C[1], D[0], D[1], comp_vals.get("S", ""))
+
+        self._wire(d, B[0], B[1], C[0], C[1])
+        gx1, gy1 = self._mid(B[0], B[1], C[0], C[1])
+        d += elm.MeterAnalog().at((gx1, gy1)).theta(0).label("G")
+
+        bat_x = -s - u
+        self._wire(d, A[0], A[1], bat_x, A[1])
+        self._wire(d, bat_x, D[1], D[0], D[1])
+        self._battery(d, bat_x, A[1], bat_x, D[1], comp_vals.get("BAT1", ""))
+
+        return d
+
+    # ----------------------------------------------------------
+    # METER BRIDGE (C10)
+    # ----------------------------------------------------------
+
+    def _render_meter_bridge(self, comp_map, comp_vals, blueprint):
+        d = schemdraw.Drawing()
+        u = 2.0
+        s = 3.0 * u
+
+        A = (0.0, 0.0)
+        J = (s, 0.0)
+        C = (s * 2, 0.0)
+        B = (s, -s)
+
+        for pt in [A, J, C, B]:
+            self._dot(d, pt[0], pt[1])
+
+        self._wire(d, A[0], A[1], J[0], J[1])
+        self._wire(d, J[0], J[1], C[0], C[1])
+
+        self._resistor(d, A[0], A[1], B[0], B[1], comp_vals.get("R", ""))
+        self._resistor(d, B[0], B[1], C[0], C[1], comp_vals.get("X", "?"))
+
+        self._wire(d, J[0], J[1], B[0], B[1])
+        mid_g = self._mid(J[0], J[1], B[0], B[1])
+        d += elm.MeterAnalog().at(mid_g).theta(-90).label("G")
+
+        bat_y = -s - u
+        self._wire(d, A[0], A[1], A[0], bat_y)
+        self._wire(d, C[0], C[1], C[0], bat_y)
+
+        cell_type = comp_map.get("CELL1", {}).get("type", "cell")
+        cell_val = comp_vals.get("CELL1", "")
+        if cell_type == "cell":
+            self._battery(d, A[0], bat_y, C[0], bat_y, cell_val, cell=True)
+        else:
+            self._battery(d, A[0], bat_y, C[0], bat_y, cell_val)
+
+        self._jockey(d, J[0], J[1], "down", 0.8)
+
+        return d
+
+    # ----------------------------------------------------------
+    # POTENTIOMETER (C11)
+    # ----------------------------------------------------------
+
+    def _render_potentiometer(self, comp_map, comp_vals, blueprint):
+        d = schemdraw.Drawing()
+        u = 2.0
+        s = 3.0 * u
+
+        A = (0.0, 0.0)
+        J = (s, 0.0)
+        C = (s * 2, 0.0)
+        B = (0.0, -s)
+        D = (s, s)
+
+        for pt in [A, J, C, B, D]:
+            self._dot(d, pt[0], pt[1])
+
+        self._wire(d, A[0], A[1], J[0], J[1])
+        self._wire(d, J[0], J[1], C[0], C[1])
+
+        self._wire(d, A[0], A[1], D[0], D[1])
+        self._wire(d, D[0], D[1], C[0], C[1])
+
+        self._wire(d, J[0], J[1], B[0], B[1])
+        mid_g = self._mid(J[0], J[1], B[0], B[1])
+        d += elm.MeterAnalog().at(mid_g).theta(45).label("G")
+
+        cell_type = comp_map.get("CELL2", {}).get("type", "cell")
+        cell_val = comp_vals.get("CELL2", "")
+        if cell_type == "cell":
+            self._battery(d, B[0], B[1], A[0], A[1], cell_val, cell=True)
+        else:
+            self._battery(d, B[0], B[1], A[0], A[1], cell_val)
+
+        cell1_type = comp_map.get("CELL1", {}).get("type", "cell")
+        cell1_val = comp_vals.get("CELL1", "")
+        mid_x, mid_y = self._mid(A[0], A[1], D[0], D[1])
+        if cell1_type == "cell":
+            self._battery(d, A[0], A[1], D[0], D[1], cell1_val, cell=True)
+        else:
+            self._battery(d, A[0], A[1], D[0], D[1], cell1_val)
+
+        mid_x2, mid_y2 = self._mid(D[0], D[1], C[0], C[1])
+        self._resistor(d, D[0], D[1], C[0], C[1], comp_vals.get("RH", ""))
+
+        self._jockey(d, J[0], J[1], "up", 0.8)
+
+        return d
+
+    # ----------------------------------------------------------
+    # File output
+    # ----------------------------------------------------------
+
+    def render_to_file(self, blueprint, layout, solution, output_path):
         svg_markup = self.render(blueprint, layout, solution)
-        Path(output_path).write_text(svg_markup, encoding="utf-8")
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(svg_markup)
         return output_path
 
 
@@ -204,7 +433,7 @@ if __name__ == "__main__":
     output_dir.mkdir(exist_ok=True)
 
     print("=" * 64)
-    print("  CIRCUIT RENDER TEST (CUSTOM SVG)")
+    print("  CIRCUIT RENDER TEST (SCHEMDRAW)")
     print("=" * 64)
 
     all_ok = True

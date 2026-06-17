@@ -1,0 +1,52 @@
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="900"
+     height="400">
+
+<line x1="150"
+      y1="200"
+      x2="750"
+      y2="200"
+      stroke="black"
+      stroke-width="3"/>
+
+<text x="400" y="180">
+100 cm wire
+</text>
+
+<rect x="180"
+      y="120"
+      width="100"
+      height="30"
+      fill="none"
+      stroke="black"/>
+
+<text x="220" y="115">R</text>
+
+<rect x="620"
+      y="120"
+      width="100"
+      height="30"
+      fill="none"
+      stroke="black"/>
+
+<text x="660" y="115">X</text>
+
+<circle cx="450"
+        cy="270"
+        r="25"
+        fill="none"
+        stroke="black"/>
+
+<text x="442" y="278">G</text>
+
+<line x1="450"
+      y1="200"
+      x2="450"
+      y2="245"
+      stroke="black"
+      stroke-width="2"/>
+
+<text x="460" y="195">J</text>
+
+</svg>

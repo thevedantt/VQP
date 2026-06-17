@@ -1,0 +1,33 @@
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="900"
+     height="400">
+
+<line x1="150"
+      y1="200"
+      x2="750"
+      y2="200"
+      stroke="black"
+      stroke-width="3"/>
+
+<text x="420" y="180">
+Potentiometer Wire
+</text>
+
+<line x1="450"
+      y1="120"
+      x2="450"
+      y2="200"
+      stroke="black"
+      stroke-width="2"/>
+
+<circle cx="450"
+        cy="120"
+        r="8"
+        fill="black"/>
+
+<text x="465" y="125">
+Jockey
+</text>
+
+</svg>

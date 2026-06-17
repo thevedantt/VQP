@@ -1,0 +1,55 @@
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="700"
+     height="300">
+
+<line x1="100" y1="150" x2="220" y2="150"
+      stroke="black" stroke-width="2"/>
+
+<rect x="220" y="135"
+      width="120"
+      height="30"
+      fill="none"
+      stroke="black"/>
+
+<text x="275" y="130">R</text>
+
+<line x1="340" y1="150"
+      x2="500"
+      y2="150"
+      stroke="black"
+      stroke-width="2"/>
+
+<line x1="220" y1="150"
+      x2="220"
+      y2="70"
+      stroke="black"
+      stroke-width="2"/>
+
+<line x1="340" y1="150"
+      x2="340"
+      y2="70"
+      stroke="black"
+      stroke-width="2"/>
+
+<circle cx="280"
+        cy="70"
+        r="25"
+        fill="none"
+        stroke="black"/>
+
+<text x="272" y="77">V</text>
+
+<line x1="220" y1="70"
+      x2="255"
+      y2="70"
+      stroke="black"
+      stroke-width="2"/>
+
+<line x1="305" y1="70"
+      x2="340"
+      y2="70"
+      stroke="black"
+      stroke-width="2"/>
+
+</svg>
