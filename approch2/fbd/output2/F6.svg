@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
+<defs>
+  <marker id="ah" markerWidth="12" markerHeight="8" refX="12" refY="4" orient="auto">
+    <polygon points="0,0 12,4 0,8" fill="#222"/>
+  </marker>
+</defs>
+
+<rect x="240" y="240" width="40" height="120" fill="#cc2222" rx="3"/>
+<text x="260" y="230" font-size="22" font-family="Arial" fill="#222" text-anchor="middle">N</text>
+<rect x="520" y="240" width="40" height="120" fill="#2266cc" rx="3"/>
+<text x="540" y="230" font-size="22" font-family="Arial" fill="#222" text-anchor="middle">S</text>
+<line x1="280" y1="260" x2="520" y2="260" stroke="#222" stroke-width="2" stroke-dasharray="8,4"/>
+<line x1="280" y1="300" x2="520" y2="300" stroke="#222" stroke-width="2" stroke-dasharray="8,4"/>
+<line x1="280" y1="340" x2="520" y2="340" stroke="#222" stroke-width="2" stroke-dasharray="8,4"/>
+<rect x="360" y="230" width="80" height="140" fill="none" stroke="#222" stroke-width="3" rx="3"/>
+<line x1="360" y1="300" x2="360" y2="150" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="350" y="148" font-size="18" font-family="Arial" fill="#222" text-anchor="end">F</text>
+<line x1="440" y1="300" x2="440" y2="450" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="450" y="458" font-size="18" font-family="Arial" fill="#222" text-anchor="start">F</text>
+<path d="M 480 220 A 60 60 0 0 1 505 280" fill="none" stroke="#222" stroke-width="2" marker-end="url(#ah)"/>
+<text x="508" y="245" font-size="18" font-family="Arial" fill="#222">τ</text>
+</svg>

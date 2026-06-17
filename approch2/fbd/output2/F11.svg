@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
+<defs>
+  <marker id="ah" markerWidth="12" markerHeight="8" refX="12" refY="4" orient="auto">
+    <polygon points="0,0 12,4 0,8" fill="#222"/>
+  </marker>
+</defs>
+
+<circle cx="400" cy="120" r="30" fill="none" stroke="#222" stroke-width="3"/>
+<circle cx="400" cy="120" r="5" fill="#222"/>
+<line x1="400" y1="0" x2="400" y2="90" stroke="#222" stroke-width="2"/>
+<line x1="400" y1="120" x2="280" y2="250" stroke="#222" stroke-width="2"/>
+<line x1="400" y1="120" x2="520" y2="250" stroke="#222" stroke-width="2"/>
+<rect x="250" y="250" width="60" height="60" fill="none" stroke="#222" stroke-width="3" rx="4"/>
+<text x="280" y="286" font-size="18" font-family="Arial" fill="#222" text-anchor="middle">m</text>
+<rect x="490" y="250" width="60" height="60" fill="none" stroke="#222" stroke-width="3" rx="4"/>
+<text x="520" y="286" font-size="18" font-family="Arial" fill="#222" text-anchor="middle">m</text>
+<line x1="280" y1="250" x2="280" y2="175" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="268" y="173" font-size="18" font-family="Arial" fill="#222" text-anchor="end">T</text>
+<line x1="280" y1="310" x2="280" y2="385" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="268" y="393" font-size="18" font-family="Arial" fill="#222" text-anchor="end">mg</text>
+<line x1="520" y1="250" x2="520" y2="175" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="532" y="173" font-size="18" font-family="Arial" fill="#222" text-anchor="start">T</text>
+<line x1="520" y1="310" x2="520" y2="385" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="532" y="393" font-size="18" font-family="Arial" fill="#222" text-anchor="start">mg</text>
+</svg>

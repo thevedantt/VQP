@@ -1,15 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
 <defs>
-  <marker id="ah" markerWidth="12" markerHeight="8" refX="12" refY="4" orient="auto">
-    <polygon points="0,0 12,4 0,8" fill="#222"/>
+  <marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+    <polygon points="0,0 10,3.5 0,7" fill="#222"/>
+  </marker>
+  <marker id="ah-gray" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+    <polygon points="0,0 10,3.5 0,7" fill="#999"/>
+  </marker>
+  <marker id="ah-open" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+    <polygon points="0,0 10,3.5 0,7" fill="#aaa"/>
   </marker>
 </defs>
 
-<rect x="300" y="100" width="200" height="400" fill="none" stroke="#999" stroke-width="2" rx="4"/>
-<rect x="340" y="220" width="120" height="120" fill="none" stroke="#222" stroke-width="3" rx="4"/>
-<text x="400" y="282" font-size="18" font-family="Arial" fill="#222" text-anchor="middle">m</text>
+<rect x="290" y="60" width="220" height="480" fill="none" stroke="#bbb" stroke-width="2" rx="4"/>
+<line x1="400" y1="0" x2="400" y2="180" stroke="#222" stroke-width="3"/>
+<rect x="330.0" y="225.0" width="140" height="150" fill="none" stroke="#222" stroke-width="3" rx="4"/>
+<line x1="400" y1="229.0" x2="400" y2="371.0" stroke="#222" stroke-width="1.5"/>
+<text x="400" y="306" font-size="20" font-family="Arial" fill="#222" text-anchor="middle">m</text>
 <line x1="400" y1="300" x2="400" y2="204.0" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
-<text x="415" y="210.0" font-size="18" font-family="Arial" fill="#222" text-anchor="start">N</text>
+<text x="416" y="209.0" font-size="18" font-family="Arial" fill="#222" text-anchor="start">N</text>
 <line x1="400" y1="300" x2="400" y2="420.0" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
-<text x="415" y="444.0" font-size="18" font-family="Arial" fill="#222" text-anchor="start">mg</text>
+<text x="416" y="444.0" font-size="18" font-family="Arial" fill="#222" text-anchor="start">mg</text>
 </svg>

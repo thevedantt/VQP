@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
+<defs>
+  <marker id="ah" markerWidth="12" markerHeight="8" refX="12" refY="4" orient="auto">
+    <polygon points="0,0 12,4 0,8" fill="#222"/>
+  </marker>
+</defs>
+
+<line x1="200" y1="420" x2="600" y2="200" stroke="#222" stroke-width="4"/>
+<rect x="365" y="238" width="70" height="70" fill="none" stroke="#222" stroke-width="3" rx="4" transform="rotate(-26.565 400 273)"/>
+<text x="400" y="283" font-size="18" font-family="Arial" fill="#222" text-anchor="middle">m</text>
+<path d="M 220 410 A 30 30 0 0 0 246 385" fill="none" stroke="#222" stroke-width="2"/>
+<text x="238" y="412" font-size="16" font-family="Arial" fill="#222">θ</text>
+<line x1="400" y1="300" x2="340.0" y2="220.0" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="355.0" y="226.0" font-size="18" font-family="Arial" fill="#222" text-anchor="start">N</text>
+<line x1="400" y1="300" x2="400" y2="430.0" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="415" y="454.0" font-size="18" font-family="Arial" fill="#222" text-anchor="start">mg</text>
+</svg>
