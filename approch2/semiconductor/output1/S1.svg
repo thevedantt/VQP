@@ -1,0 +1,24 @@
+
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="800"
+         height="600">
+
+    <rect width="100%"
+          height="100%"
+          fill="white"/>
+    
+    <rect x="250" y="220"
+          width="150" height="120"
+          fill="none" stroke="black"/>
+
+    <rect x="400" y="220"
+          width="150" height="120"
+          fill="none" stroke="black"/>
+
+    <text x="320" y="290">P</text>
+    <text x="470" y="290">N</text>
+
+    <line x1="400" y1="220"
+          x2="400" y2="340"
+          stroke="black"/>
+    </svg>

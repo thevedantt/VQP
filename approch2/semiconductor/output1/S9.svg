@@ -1,0 +1,29 @@
+
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="800"
+         height="600">
+
+    <rect width="100%"
+          height="100%"
+          fill="white"/>
+    
+    <path d="
+        M250 220
+        Q380 300 250 380
+        Q420 380 520 300
+        Q420 220 250 220"
+        fill="none"
+        stroke="black"/>
+
+    <line x1="150" y1="260"
+          x2="260" y2="260"
+          stroke="black"/>
+
+    <line x1="150" y1="340"
+          x2="260" y2="340"
+          stroke="black"/>
+
+    <line x1="520" y1="300"
+          x2="620" y2="300"
+          stroke="black"/>
+    </svg>

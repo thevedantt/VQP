@@ -1,0 +1,65 @@
+
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="800" height="600">
+    <style>
+      .bg { fill: #ffffff; }
+      .title { font: bold 22px Arial,Helvetica,sans-serif; fill: #1a1a1a; }
+      .lbl { font: bold 18px Arial,Helvetica,sans-serif; fill: #1a1a1a; }
+      .lbl-sm { font: 14px Arial,Helvetica,sans-serif; fill: #1a1a1a; }
+      .p-reg { fill: #D6EAF8; stroke: #1a1a1a; stroke-width: 2; }
+      .n-reg { fill: #FADBD8; stroke: #1a1a1a; stroke-width: 2; }
+      .dep { fill: url(#hatch); stroke: #1a1a1a; stroke-width: 2; }
+      .dep-s { fill: #E8E8E8; stroke: #1a1a1a; stroke-width: 2; }
+      .wire { stroke: #1a1a1a; stroke-width: 2; fill: none; }
+      .wire-t { stroke: #1a1a1a; stroke-width: 1.5; fill: none; }
+      .sym { stroke: #1a1a1a; stroke-width: 2.5; fill: none; }
+      .cr { font: 16px Arial,Helvetica,sans-serif; fill: #1a1a1a; text-anchor: middle; }
+      .ion { font: 12px Arial,Helvetica,sans-serif; fill: #888; text-anchor: middle; }
+      .gt { stroke: #1a1a1a; stroke-width: 2.5; fill: #F4F4F4; }
+      .light { font: 16px Arial,Helvetica,sans-serif; fill: #E67E22; text-anchor: middle; }
+    </style>
+    <defs>
+      <pattern id="hatch" width="8" height="8"
+               patternUnits="userSpaceOnUse"
+               patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="8"
+              stroke="#999" stroke-width="1"/>
+      </pattern>
+      <marker id="arr" viewBox="0 0 10 10"
+              refX="9" refY="5"
+              markerWidth="7" markerHeight="7"
+              orient="auto">
+        <path d="M0,1 L9,5 L0,9 Z" fill="#1a1a1a"/>
+      </marker>
+      <marker id="arr-o" viewBox="0 0 10 10"
+              refX="9" refY="5"
+              markerWidth="7" markerHeight="7"
+              orient="auto">
+        <path d="M0,1 L9,5 L0,9 Z"
+              fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+      </marker>
+      <marker id="arr-l" viewBox="0 0 10 10"
+              refX="9" refY="5"
+              markerWidth="7" markerHeight="7"
+              orient="auto">
+        <path d="M0,1 L9,5 L0,9 Z" fill="#E67E22"/>
+      </marker>
+    </defs>
+    <rect class="bg" width="100%" height="100%"/>
+    
+    <text class="title" x="400" y="55"
+          text-anchor="middle">AND Gate</text>
+
+    <path d="M 250 220 L 390 220
+             A 80 80 0 0 1 390 380
+             L 250 380 Z"
+          class="gt"/>
+
+    <line class="wire" x1="150" y1="260" x2="250" y2="260"/>
+    <line class="wire" x1="150" y1="340" x2="250" y2="340"/>
+    <line class="wire" x1="470" y1="300" x2="620" y2="300"/>
+
+    <text class="lbl" x="130" y="265" text-anchor="end">A</text>
+    <text class="lbl" x="130" y="345" text-anchor="end">B</text>
+    <text class="lbl" x="640" y="305" text-anchor="start">Y</text>
+    </svg>

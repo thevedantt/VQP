@@ -315,6 +315,8 @@ def render_current_loop():
 
     <text x="415" y="220" font-size="16" font-style="italic">μ</text>
     <text x="390" y="165" font-size="14">I</text>
+    <text x="415" y="175" font-size="14" font-weight="bold" fill="#1976d2">N</text>
+    <text x="415" y="440" font-size="14" font-weight="bold" fill="#d32f2f">S</text>
 """
     for angle in [45, 135, 225, 315]:
         x = 400 + 120 * math.cos(math.radians(angle))
@@ -337,6 +339,9 @@ def render_uniform_field():
               marker-end="url(#arrow)"/>
 """
         y += 40
+    svg += """
+    <text x="580" y="175" font-size="16" font-style="italic">B</text>
+"""
     return svg
 
 
@@ -345,7 +350,7 @@ def render_uniform_field():
 # =====================================================
 
 def render_charged_particle():
-    return """
+    svg = """
     <circle cx="400" cy="300" r="80"
             fill="none" stroke="black" stroke-width="1"
             stroke-dasharray="4,3"/>
@@ -354,21 +359,25 @@ def render_charged_particle():
             fill="none" stroke="black" stroke-width="2"/>
     <text x="394" y="305" font-size="18" font-weight="bold">+</text>
 
-    <line x1="400" y1="300" x2="500" y2="300"
+    <line x1="400" y1="220" x2="490" y2="220"
           stroke="black" stroke-width="2"
           marker-end="url(#arrow)"/>
-    <text x="505" y="295" font-size="14" font-style="italic">v</text>
+    <text x="495" y="215" font-size="14" font-style="italic">v</text>
 
-    <line x1="400" y1="300" x2="400" y2="200"
-          stroke="#1976d2" stroke-width="2"
-          marker-end="url(#arrowBlue)"/>
-    <text x="405" y="195" font-size="14" font-style="italic" fill="#1976d2">B</text>
-
-    <line x1="400" y1="300" x2="320" y2="300"
+    <line x1="400" y1="220" x2="400" y2="290"
           stroke="#d32f2f" stroke-width="2"
           marker-end="url(#arrow)"/>
-    <text x="310" y="295" font-size="14" font-style="italic" fill="#d32f2f">F</text>
-    """
+    <text x="405" y="295" font-size="14" font-style="italic" fill="#d32f2f">F</text>
+"""
+    for bx in range(300, 501, 40):
+        for by in range(180, 421, 40):
+            if (bx - 400) ** 2 + (by - 300) ** 2 > 70 ** 2:
+                svg += f"""
+        <use href="#cross" x="{bx}" y="{by}"/>"""
+    svg += """
+    <text x="300" y="175" font-size="14" font-style="italic">× B (into page)</text>
+"""
+    return svg
 
 
 # =====================================================
@@ -382,25 +391,21 @@ def render_velocity_selector():
 
     <text x="385" y="145" font-size="15" font-weight="bold">Velocity Selector</text>
 """
-    for ex in [290, 340, 390, 440, 490]:
+    for ex in [270, 320, 370, 420, 470, 520]:
         svg += f"""
-        <line x1="{ex}" y1="200" x2="{ex}" y2="250"
+        <line x1="{ex}" y1="195" x2="{ex}" y2="245"
               stroke="black" stroke-width="1.5"
               marker-end="url(#arrow)"/>
 """
     svg += """
-    <text x="250" y="230" font-size="14" font-style="italic">E</text>
+    <text x="248" y="235" font-size="14" font-style="italic">E</text>
 """
-    for bx in [290, 340, 390, 440, 490]:
-        by = 340
-        svg += f"""
-        <line x1="{bx-5}" y1="{by-5}" x2="{bx+5}" y2="{by+5}"
-              stroke="black" stroke-width="1.5"/>
-        <line x1="{bx-5}" y1="{by+5}" x2="{bx+5}" y2="{by-5}"
-              stroke="black" stroke-width="1.5"/>
-"""
+    for bx in [280, 330, 380, 430, 480]:
+        for by in [310, 350, 390]:
+            svg += f"""
+        <use href="#cross" x="{bx}" y="{by}"/>"""
     svg += """
-    <text x="250" y="350" font-size="14" font-style="italic">B</text>
+    <text x="248" y="340" font-size="14" font-style="italic">B (⊗)</text>
 
     <line x1="100" y1="300" x2="220" y2="300"
           stroke="black" stroke-width="2"
@@ -409,7 +414,9 @@ def render_velocity_selector():
 
     <circle cx="240" cy="300" r="10"
             fill="none" stroke="black" stroke-width="1.5"/>
-    <text x="237" y="304" font-size="12" font-weight="bold">+</text>
+    <text x="236" y="303" font-size="12" font-weight="bold">+q</text>
+
+    <text x="300" y="455" font-size="13" font-style="italic" fill="#1976d2">qE = qvB → v = E/B</text>
 """
     return svg
 
@@ -452,8 +459,23 @@ def render_cyclotron():
              A 140 140 0 0 1 480 300"
           fill="none" stroke="#1976d2" stroke-width="1.5"/>
 
-    <text x="620" y="140" font-size="14" font-style="italic">B</text>
-    <text x="180" y="140" font-size="14" font-style="italic">B</text>
+"""
+    for bx in [280, 330, 380]:
+        for by in [180, 230, 280, 350, 400, 450]:
+            dx = bx - 400
+            dy = by - 300
+            if dx * dx + dy * dy < 160 * 160 and abs(dx) > 20:
+                svg += f"""
+        <use href="#cross" x="{bx}" y="{by}"/>"""
+    for bx in [420, 470, 520]:
+        for by in [180, 230, 280, 350, 400, 450]:
+            dx = bx - 400
+            dy = by - 300
+            if dx * dx + dy * dy < 160 * 160 and abs(dx) > 20:
+                svg += f"""
+        <use href="#cross" x="{bx}" y="{by}"/>"""
+    svg += """
+    <text x="300" y="110" font-size="14" font-style="italic">× B (into page)</text>
 """
     return svg
 

@@ -1,0 +1,113 @@
+import json
+from pathlib import Path
+
+
+BLUEPRINT_FILE = (
+    Path(__file__).parent /
+    "semi_blueprints.json"
+)
+
+
+VALID_OBJECT_TYPES = {
+
+    "pn_junction",
+
+    "forward_bias",
+
+    "reverse_bias",
+
+    "zener_diode",
+
+    "led",
+
+    "photodiode",
+
+    "not_gate",
+
+    "and_gate",
+
+    "or_gate",
+
+    "nand_gate"
+}
+
+
+def validate_blueprint(bp):
+
+    errors = []
+
+    if "question_id" not in bp:
+
+        errors.append(
+            "Missing question_id"
+        )
+
+    if "diagram_type" not in bp:
+
+        errors.append(
+            "Missing diagram_type"
+        )
+
+    elif bp["diagram_type"] != "semiconductor":
+
+        errors.append(
+            "diagram_type must be semiconductor"
+        )
+
+    if "object_type" not in bp:
+
+        errors.append(
+            "Missing object_type"
+        )
+
+    elif bp["object_type"] not in VALID_OBJECT_TYPES:
+
+        errors.append(
+            f"Invalid object_type: {bp['object_type']}"
+        )
+
+    return errors
+
+
+def main():
+
+    with open(
+        BLUEPRINT_FILE,
+        "r",
+        encoding="utf-8"
+    ) as f:
+
+        blueprints = json.load(f)
+
+    print()
+    print(
+        "SEMICONDUCTOR VALIDATION REPORT"
+    )
+
+    print("=" * 60)
+
+    for bp in blueprints:
+
+        errors = validate_blueprint(bp)
+
+        print()
+        print(bp["question_id"])
+
+        if len(errors) == 0:
+
+            print("VALID : True")
+            print(" ✓ Passed")
+
+        else:
+
+            print("VALID : False")
+
+            for err in errors:
+
+                print(f" - {err}")
+
+    print()
+
+
+if __name__ == "__main__":
+    main()
