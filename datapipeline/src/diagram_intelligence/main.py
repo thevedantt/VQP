@@ -13,9 +13,9 @@ from diagram_intelligence.parser import DiagramResponseParser
 
 def main():
     # Define paths
-    input_labeled_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
-    output_dataset_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "diagram_dataset.json"
-    statistics_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "diagram_statistics.json"
+    input_labeled_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
+    output_dataset_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "diagram_dataset.json"
+    statistics_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "diagram_statistics.json"
 
     # Check input file
     if not input_labeled_path.exists():
