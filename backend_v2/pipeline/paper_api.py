@@ -30,6 +30,7 @@ from pipeline.paper_builder import build_paper
 from pipeline.paper_templates import list_templates
 from pipeline.pdf_export import export_paper_to_pdf
 from api.diagram import router as diagram_router
+from api.outputs import router as outputs_router
 
 app = FastAPI(title="VisualQ Paper Generation Engine", version="3a")
 
@@ -41,6 +42,7 @@ app.add_middleware(
 )
 
 app.include_router(diagram_router)
+app.include_router(outputs_router)
 
 PAPERS_DIR = BACKEND_V2 / "outputv2" / "papers"
 

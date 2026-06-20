@@ -3,6 +3,7 @@ import type {
   GenerateAllDiagramsResponse,
   GeneratePaperRequest,
   GeneratedPaperResponse,
+  OutputsResponse,
   ReviseDiagramResponse,
   SuggestionsResponse,
   VersionsResponse,
@@ -153,6 +154,10 @@ export function analyzeDiagram(body: {
     "/api/analyze-diagram",
     body
   );
+}
+
+export function listOutputs(refresh = false): Promise<OutputsResponse> {
+  return getJson<OutputsResponse>(`/api/outputs?refresh=${refresh}`);
 }
 
 export function getDiagramSvgUrl(

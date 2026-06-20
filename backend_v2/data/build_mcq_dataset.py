@@ -5,7 +5,7 @@ concept, difficulty populated from labeling instead of null) so the
 question selector can filter/match MCQs the same way it would for
 descriptive types.
 
-Source: ../backend/app/data/question_bank/labeled_questions.json
+Source: ../../archive/backend/app/data/question_bank/labeled_questions.json
     214 deduplicated, chapter/concept-labeled CBSE PYQ entries.
 
 Some MCQ entries are Hindi-language duplicates of an English MCQ
@@ -34,7 +34,7 @@ sys.path.insert(0, str(BACKEND_V2))
 from pipeline.normalize_unicode import is_clean, normalize
 
 SOURCE_PATH = (
-    BACKEND_V2.parent / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
+    BACKEND_V2.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
 )
 OUTPUT_PATH = BACKEND_V2 / "data" / "mcq_questions.json"
 

@@ -31,7 +31,7 @@ def main():
     reports_dir = data_dir / "reports"
     
     # Backend Export Directory
-    backend_export_dir = project_root.parent / "backend" / "app" / "data" / "question_bank"
+    backend_export_dir = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank"
 
     # Make sure target dirs exist
     extracted_dir.mkdir(parents=True, exist_ok=True)

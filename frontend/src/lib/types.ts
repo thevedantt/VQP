@@ -130,6 +130,26 @@ export interface ValidationReport {
   warnings: string[];
 }
 
+export interface OutputFile {
+  name: string;
+  path: string;
+  type: string;
+  size: string;
+  created_at: string;
+  source: string;
+}
+
+export interface OutputCategory {
+  name: string;
+  count: number;
+  files: OutputFile[];
+}
+
+export interface OutputsResponse {
+  categories: OutputCategory[];
+  total_files: number;
+}
+
 export interface AnalyzeDiagramResponse {
   svg: string;
   understanding: UnderstandingLayer;

@@ -2,7 +2,7 @@
 One-time / reproducible builder for backend_v2's descriptive (VSA/SA/LA)
 PYQ question pool.
 
-Source: ../backend/app/data/question_bank/labeled_questions.json
+Source: ../../archive/backend/app/data/question_bank/labeled_questions.json
     214 deduplicated, chapter/concept-labeled CBSE PYQ entries. This is
     richer than final_dataset.json (which build_pyq_dataset.py reads) -
     it has real chapter tags instead of null, and includes Long Answer
@@ -28,7 +28,7 @@ sys.path.insert(0, str(BACKEND_V2))
 from pipeline.normalize_unicode import is_clean, normalize
 
 SOURCE_PATH = (
-    BACKEND_V2.parent / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
+    BACKEND_V2.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
 )
 OUTPUT_PATH = BACKEND_V2 / "data" / "descriptive_questions.json"
 

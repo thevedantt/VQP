@@ -1,7 +1,7 @@
 """
 One-time / reproducible builder for backend_v2's PYQ question pool.
 
-Source: ../backend/app/data/question_bank/final_dataset.json
+Source: ../../archive/backend/app/data/question_bank/final_dataset.json
     267 raw CBSE PYQ entries scraped from past papers. ~40% are
     non-English / garbled PDF-extraction artifacts (private-use-area
     glyphs from a broken font mapping) and are dropped here. The
@@ -19,7 +19,7 @@ from pathlib import Path
 
 BACKEND_V2 = Path(__file__).resolve().parent.parent
 SOURCE_PATH = (
-    BACKEND_V2.parent / "backend" / "app" / "data" / "question_bank" / "final_dataset.json"
+    BACKEND_V2.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "final_dataset.json"
 )
 OUTPUT_PATH = BACKEND_V2 / "data" / "pyq_questions.json"
 

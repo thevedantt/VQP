@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRightIcon, SparklesIcon, XIcon } from "lucide-react";
+import { ArrowRightIcon, SparklesIcon, XIcon, MenuIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -354,94 +354,100 @@ export default function Home() {
       {/* ══════════════════════════════════════ */}
       {/* 1. HERO                               */}
       {/* ══════════════════════════════════════ */}
-      <section className="relative border-b border-border">
-        {/* Navbar */}
+      <section className="flex flex-col bg-background">
+        {/* Navbar — transparent, minimal */}
         <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            VisualQ
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold tracking-tight text-foreground">
+              VisualQ
+            </span>
+            <span className="hidden sm:block text-xs text-muted-foreground/50 border-l border-border pl-2 ml-1 leading-none">
+              Physics Diagram Intelligence
+            </span>
+          </div>
+          <div className="hidden md:flex items-center gap-8">
+            <Link href="#about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              About
+            </Link>
+            <Link href="#current-architecture" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Architecture
+            </Link>
+            <Link href="#approaches" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Approaches
+            </Link>
+            <Link href="#families" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Diagram Engine
+            </Link>
+            <Link href="/outputs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Outputs
+            </Link>
+            <span className="text-sm text-muted-foreground/40 cursor-default">
+              Roadmap
+            </span>
+          </div>
           <div className="flex items-center gap-3">
-            <ThemeToggle />
             <Button size="sm" asChild>
               <Link href="/paper_generation">
                 <SparklesIcon className="size-3.5" />
                 Generate Paper
               </Link>
             </Button>
+            <ThemeToggle />
           </div>
         </nav>
 
-        {/* Hero content */}
-        <div className="mx-auto flex w-full max-w-6xl flex-col lg:flex-row items-center gap-16 px-4 py-16 lg:py-24">
-          {/* Left */}
-          <div className="flex-1 flex flex-col gap-8 text-center lg:text-left">
-            <div className="flex flex-col gap-4">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
-                VisualQ
-              </h1>
-              <p className="max-w-xl text-lg text-muted-foreground/90 leading-relaxed">
-                AI Powered Physics Question Paper &amp; Diagram Intelligence
-                Engine
-              </p>
-              <p className="max-w-xl text-sm text-muted-foreground/70 leading-relaxed">
-                Generate CBSE Physics papers, detect diagram questions, create
-                accurate SVG diagrams, and export ready-to-use assessments.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <Button size="lg" className="px-8 h-11 text-base" asChild>
-                <Link href="/paper_generation">
-                  <SparklesIcon className="size-4" />
-                  Generate Paper
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="px-8 h-11 text-base"
-                onClick={() =>
-                  document
-                    .getElementById("current-architecture")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                Explore Architecture
-                <ArrowRightIcon className="size-4" />
-              </Button>
-            </div>
+        {/* Hero container — single large banner with background image */}
+        <div className="w-[90%] mx-auto rounded-3xl overflow-hidden border border-border mb-12 relative" style={{ height: "min(700px, 90vh)" }}>
+          {/* Background image */}
+          <div className="absolute inset-0">
+            <img
+              src="/bg image.jpg"
+              alt=""
+              className="w-full h-full object-cover object-right"
+            />
           </div>
 
-          {/* Right: Pipeline visual */}
-          <div className="hidden lg:flex flex-col items-center">
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <p className="text-xs font-medium text-muted-foreground text-center mb-5 uppercase tracking-widest">
-                Pipeline
-              </p>
-              {[
-                "Question",
-                "Diagram Intelligence",
-                "Blueprint",
-                "Compiler",
-                "SVG Diagram",
-              ].map((step, idx) => (
-                <div key={step} className="flex flex-col items-center">
-                  <div
-                    className={`rounded-xl border px-6 py-3 text-sm font-medium whitespace-nowrap ${
-                      idx === 1
-                        ? "border-primary/30 bg-primary/5 text-primary"
-                        : idx === 3
-                          ? "border-[#CBD83B]/30 bg-[#CBD83B]/5 text-[#CBD83B]"
-                          : "border-border bg-muted/30 text-foreground/70"
-                    }`}
-                  >
-                    {step}
-                  </div>
-                  {idx < 4 && (
-                    <ArrowRightIcon className="size-3.5 text-muted-foreground/30 my-1.5" />
-                  )}
-                </div>
-              ))}
+          {/* Subtle overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-background/30 to-transparent" />
+
+          {/* Content — bottom-left positioned */}
+          <div className="absolute inset-0 flex items-end justify-start">
+            <div className="flex flex-col gap-6 px-8 lg:px-14 pb-12 lg:pb-16 max-w-xl">
+              <div className="flex flex-col gap-3">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
+                  VisualQ
+                </h1>
+                <p className="text-xl sm:text-2xl font-semibold text-foreground leading-snug">
+                  Generate Physics Question Papers with Diagram Intelligence
+                </p>
+                <p className="text-sm text-foreground/80 leading-relaxed">
+                  Generate CBSE Physics papers, automatically detect diagram
+                  questions, create SVG diagrams using deterministic rendering
+                  engines, and export ready-to-use assessments.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start gap-3">
+                <Button size="lg" className="px-8 h-11 text-base" asChild>
+                  <Link href="/paper_generation">
+                    <SparklesIcon className="size-4" />
+                    Generate Paper
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="px-8 h-11 text-base"
+                  onClick={() =>
+                    document
+                      .getElementById("current-architecture")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
+                >
+                  Explore Architecture
+                  <ArrowRightIcon className="size-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -452,7 +458,7 @@ export default function Home() {
       {/* ══════════════════════════════════════ */}
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-24 px-4 py-16">
         {/* ── 2. ABOUT ── */}
-        <section className="flex flex-col gap-6 max-w-3xl">
+        <section id="about" className="flex flex-col gap-6 max-w-3xl">
           <h2 className="text-2xl font-semibold tracking-tight">About</h2>
           <div className="flex flex-col gap-4 text-sm text-muted-foreground leading-relaxed">
             <p>
@@ -493,7 +499,7 @@ export default function Home() {
         </section>
 
         {/* ── 4. DIAGRAM FAMILIES ── */}
-        <section className="flex flex-col gap-6">
+        <section id="families" className="flex flex-col gap-6">
           <h2 className="text-2xl font-semibold tracking-tight">
             Diagram Families
           </h2>
@@ -553,7 +559,7 @@ export default function Home() {
         </section>
 
         {/* ── 6. APPROACHES (UNTOUCHED) ── */}
-        <section className="flex flex-col gap-6">
+        <section id="approaches" className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold tracking-tight">
               Evolution Timeline
