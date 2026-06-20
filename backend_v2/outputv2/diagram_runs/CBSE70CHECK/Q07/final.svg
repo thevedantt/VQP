@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700">
+<defs>
+  <marker id="ah" markerWidth="10" markerHeight="10" refX="10" refY="5.0" orient="auto">
+    <polygon points="0,0 10,5.0 0,10" fill="#222"/>
+  </marker>
+  <marker id="ah-rev" markerWidth="10" markerHeight="10" refX="0" refY="5.0" orient="auto">
+    <polygon points="10,0 0,5.0 10,10" fill="#222"/>
+  </marker>
+  <marker id="ah-red" markerWidth="10" markerHeight="10" refX="10" refY="5.0" orient="auto">
+    <polygon points="0,0 10,5.0 0,10" fill="#cc0000"/>
+  </marker>
+  <marker id="ah-green" markerWidth="10" markerHeight="10" refX="10" refY="5.0" orient="auto">
+    <polygon points="0,0 10,5.0 0,10" fill="#006600"/>
+  </marker>
+  <marker id="ah-blue" markerWidth="10" markerHeight="10" refX="10" refY="5.0" orient="auto">
+    <polygon points="0,0 10,5.0 0,10" fill="#0000cc"/>
+  </marker>
+</defs>
+
+<line x1="40" y1="300" x2="1160" y2="300" stroke="#222" stroke-width="2" marker-start="url(#ah-rev)" marker-end="url(#ah)"/>
+<path d="M 500,140 Q 522,300 500,460 Q 478,300 500,140" fill="none" stroke="#1a1aff" stroke-width="2.5" stroke-linejoin="round"/>
+<line x1="500" y1="140" x2="500" y2="460" stroke="#1a1aff" stroke-width="1.5" stroke-dasharray="5,4"/>
+<circle cx="500" cy="300" r="2.5" fill="#1a1aff"/>
+<line x1="200.0" y1="293" x2="200.0" y2="307" stroke="#222" stroke-width="1.2"/>
+<circle cx="200.0" cy="300" r="2.5" fill="#222"/>
+<line x1="300.0" y1="293" x2="300.0" y2="307" stroke="#222" stroke-width="1.2"/>
+<circle cx="300.0" cy="300" r="2.5" fill="#222"/>
+<line x1="500" y1="293" x2="500" y2="307" stroke="#222" stroke-width="1.2"/>
+<circle cx="500" cy="300" r="2.5" fill="#222"/>
+<line x1="500.0" y1="293" x2="500.0" y2="307" stroke="#222" stroke-width="1.2"/>
+<circle cx="500.0" cy="300" r="2.5" fill="#222"/>
+<line x1="600.0" y1="293" x2="600.0" y2="307" stroke="#222" stroke-width="1.2"/>
+<circle cx="600.0" cy="300" r="2.5" fill="#222"/>
+<text x="200.0" y="326" text-anchor="middle" font-size="15" font-family="Arial, sans-serif" font-weight="bold">2F₁</text>
+<text x="300.0" y="326" text-anchor="middle" font-size="15" font-family="Arial, sans-serif" font-weight="bold">F₁</text>
+<text x="500" y="326" text-anchor="middle" font-size="15" font-family="Arial, sans-serif" font-weight="bold">O</text>
+<text x="500.0" y="326" text-anchor="middle" font-size="15" font-family="Arial, sans-serif" font-weight="bold">F₂</text>
+<text x="600.0" y="326" text-anchor="middle" font-size="15" font-family="Arial, sans-serif" font-weight="bold">2F₂</text>
+<line x1="566.6666666666666" y1="216.66666666666669" x2="566.6666666666666" y2="363.3333333333333" stroke="#bbb" stroke-width="1" stroke-dasharray="4,4"/>
+<!-- Rays -->
+<line x1="150" y1="220" x2="400" y2="220" stroke="#cc0000" stroke-width="2"/>
+<line x1="400" y1="220" x2="558.8579785722363" y2="347.0863828577891" stroke="#cc0000" stroke-width="2" marker-end="url(#ah-red)"/>
+<line x1="558.8579785722363" y1="347.0863828577891" x2="566.6666666666666" y2="353.3333333333333" stroke="#cc0000" stroke-width="2"/>
+
+<line x1="150" y1="220" x2="557.1424251946734" y2="350.2855760622955" stroke="#006600" stroke-width="2" marker-end="url(#ah-green)"/>
+<line x1="557.1424251946734" y1="350.2855760622955" x2="566.6666666666666" y2="353.3333333333333" stroke="#006600" stroke-width="2"/>
+
+<line x1="150" y1="220" x2="391.1764705882353" y2="348.62745098039215" stroke="#0000cc" stroke-width="2" marker-end="url(#ah-blue)"/>
+<line x1="391.1764705882353" y1="348.62745098039215" x2="400" y2="353.33333333333337" stroke="#0000cc" stroke-width="2"/>
+<line x1="400" y1="353.33333333333337" x2="556.6666666666666" y2="353.33333333333337" stroke="#0000cc" stroke-width="2" marker-end="url(#ah-blue)"/>
+<line x1="556.6666666666666" y1="353.33333333333337" x2="566.6666666666666" y2="353.33333333333337" stroke="#0000cc" stroke-width="2"/>
+<circle cx="566.6666666666666" cy="353.3333333333333" r="3" fill="#333"/>
+<line x1="150" y1="300" x2="150" y2="220" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="140" y="208" text-anchor="end" font-size="15" font-family="Arial, sans-serif" font-style="italic">Object</text>
+<line x1="566.6666666666666" y1="300" x2="566.6666666666666" y2="353.3333333333333" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="576.6666666666666" y="381.3333333333333" text-anchor="start" font-size="15" font-family="Arial, sans-serif" font-style="italic">Image</text>
+<text x="600.0" y="35" text-anchor="middle" font-size="18" font-family="Arial, sans-serif" font-weight="bold">Ray Diagram — Convex Lens</text>
+<text x="600.0" y="55" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="#666">Object Beyond 2F</text>
+</svg>
