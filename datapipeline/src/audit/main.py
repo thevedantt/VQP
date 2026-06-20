@@ -14,14 +14,14 @@ from audit.diagram_analysis import DiagramAnalysis
 
 def main():
     # Define paths
-    input_labeled_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
-    
+    input_labeled_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
+
     # Target files to output
-    validation_sample_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "validation_sample.json"
-    review_dataset_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "review_dataset.json"
-    quality_flags_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "quality_flags.json"
-    diagram_analysis_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "diagram_analysis.json"
-    statistics_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "dataset_statistics.json"
+    validation_sample_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "validation_sample.json"
+    review_dataset_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "review_dataset.json"
+    quality_flags_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "quality_flags.json"
+    diagram_analysis_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "diagram_analysis.json"
+    statistics_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "dataset_statistics.json"
 
     # Make sure target dir exists
     input_labeled_path.parent.mkdir(parents=True, exist_ok=True)
