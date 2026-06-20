@@ -26,7 +26,7 @@
 
 # Virtual Environments
 
-backend/myenv/
+archive/backend/myenv/
 datapipeline/myenv2/
 venv/
 .venv/
@@ -97,12 +97,12 @@ datapipeline/data/embeddings/
 
 # ==================================
 
-backend/app/data/question_bank/*.json
+archive/backend/app/data/question_bank/*.json
 datapipeline/data/**/*.json
 
 # Keep final curated dataset
 
-!backend/app/data/question_bank/final_dataset.json
+!archive/backend/app/data/question_bank/final_dataset.json
 
 # ==================================
 
@@ -110,7 +110,7 @@ datapipeline/data/**/*.json
 
 # ==================================
 
-backend/app/data/embeddings/
+archive/backend/app/data/embeddings/
 
 vector_db/
 chroma_db/
