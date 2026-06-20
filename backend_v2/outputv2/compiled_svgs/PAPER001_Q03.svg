@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
+<defs>
+  <marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+    <polygon points="0,0 10,3.5 0,7" fill="#222"/>
+  </marker>
+  <marker id="ah-gray" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+    <polygon points="0,0 10,3.5 0,7" fill="#999"/>
+  </marker>
+  <marker id="ah-open" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+    <polygon points="0,0 10,3.5 0,7" fill="#aaa"/>
+  </marker>
+</defs>
+
+<rect x="348" y="248" width="104" height="104" fill="none" stroke="#222" stroke-width="3" rx="4"/>
+<text x="400" y="306" font-size="20" font-family="Arial" fill="#222" text-anchor="middle">m</text>
+<line x1="400" y1="300" x2="400" y2="180.0" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="416" y="185.0" font-size="18" font-family="Arial" fill="#222" text-anchor="start">N</text>
+<line x1="400" y1="300" x2="400" y2="420.0" stroke="#222" stroke-width="3" marker-end="url(#ah)"/>
+<text x="416" y="444.0" font-size="18" font-family="Arial" fill="#222" text-anchor="start">mg</text>
+</svg>

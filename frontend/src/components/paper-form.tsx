@@ -12,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -22,11 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import type { DifficultyLevel, GeneratePaperRequest } from "@/lib/types";
+import type { DifficultyLevel, GeneratePaperRequest, PaperType } from "@/lib/types";
 
-const MIN_QUESTIONS = 4;
-const MAX_QUESTIONS = 50;
+const PAPER_TYPE_OPTIONS: { value: PaperType; label: string }[] = [
+  { value: "UNIT_TEST_20", label: "Unit Test (20 Marks)" },
+  { value: "CBSE_70", label: "CBSE Board (70 Marks)" },
+];
 
 const DIFFICULTY_OPTIONS: { value: DifficultyLevel; label: string }[] = [
   { value: "easy", label: "Easy" },
@@ -40,46 +40,23 @@ interface PaperFormProps {
 }
 
 export function PaperForm({ loading, onSubmit }: PaperFormProps) {
+  const [paperType, setPaperType] = useState<PaperType>("UNIT_TEST_20");
+  const [pyqRatio, setPyqRatio] = useState(60);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>("medium");
-  const [pyqPercentage, setPyqPercentage] = useState(60);
-  const [includeDiagrams, setIncludeDiagrams] = useState(true);
-  const [diagramPercentage, setDiagramPercentage] = useState(40);
-  const [totalQuestions, setTotalQuestions] = useState(16);
 
-  const aiPercentage = 100 - pyqPercentage;
+  const aiRatio = 100 - pyqRatio;
 
-  function handleTotalQuestionsChange(rawValue: string) {
-    if (rawValue === "") {
-      setTotalQuestions(MIN_QUESTIONS);
-      return;
-    }
-    const parsed = Number(rawValue);
-    if (Number.isNaN(parsed)) return;
-    setTotalQuestions(parsed);
-  }
-
-  function handleTotalQuestionsBlur() {
-    const clamped = Math.min(
-      MAX_QUESTIONS,
-      Math.max(MIN_QUESTIONS, Math.round(totalQuestions) || MIN_QUESTIONS)
-    );
-    setTotalQuestions(clamped);
+  function handlePyqChange([value]: number[]) {
+    setPyqRatio(value);
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const clampedTotal = Math.min(
-      MAX_QUESTIONS,
-      Math.max(MIN_QUESTIONS, Math.round(totalQuestions) || MIN_QUESTIONS)
-    );
-
     onSubmit({
+      paper_type: paperType,
+      pyq_ratio: pyqRatio,
+      ai_ratio: aiRatio,
       difficulty,
-      pyq_percentage: pyqPercentage,
-      ai_percentage: aiPercentage,
-      include_diagrams: includeDiagrams,
-      diagram_percentage: diagramPercentage,
-      total_questions: clampedTotal,
     });
   }
 
@@ -88,12 +65,68 @@ export function PaperForm({ loading, onSubmit }: PaperFormProps) {
       <CardHeader>
         <CardTitle>Generate Paper</CardTitle>
         <CardDescription>
-          Configure the paper and call the orchestrator to assemble a CBSE
-          Physics test.
+          Configure paper type, source ratio, and difficulty to generate a
+          Physics question paper.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="grid gap-6 sm:grid-cols-2">
+        <CardContent className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="paper-type">Paper Type</Label>
+            <Select
+              value={paperType}
+              onValueChange={(value) => setPaperType(value as PaperType)}
+            >
+              <SelectTrigger id="paper-type" className="w-full">
+                <SelectValue placeholder="Select paper type" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAPER_TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="pyq-ratio">PYQ Ratio</Label>
+              <span className="text-sm text-muted-foreground">
+                {pyqRatio}%
+              </span>
+            </div>
+            <Slider
+              id="pyq-ratio"
+              value={[pyqRatio]}
+              min={0}
+              max={100}
+              step={5}
+              onValueChange={handlePyqChange}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="ai-ratio">AI Ratio</Label>
+              <span className="text-sm text-muted-foreground">
+                {aiRatio}%
+              </span>
+            </div>
+            <Slider
+              id="ai-ratio"
+              value={[aiRatio]}
+              min={0}
+              max={100}
+              step={5}
+              onValueChange={([value]) => setPyqRatio(100 - value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              PYQ + AI = {pyqRatio + aiRatio}%
+            </p>
+          </div>
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="difficulty">Difficulty</Label>
             <Select
@@ -111,75 +144,6 @@ export function PaperForm({ loading, onSubmit }: PaperFormProps) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="total-questions">Number of Questions</Label>
-            <Input
-              id="total-questions"
-              type="number"
-              inputMode="numeric"
-              min={MIN_QUESTIONS}
-              max={MAX_QUESTIONS}
-              value={totalQuestions}
-              onChange={(event) => handleTotalQuestionsChange(event.target.value)}
-              onBlur={handleTotalQuestionsBlur}
-            />
-            <p className="text-xs text-muted-foreground">
-              Between {MIN_QUESTIONS} and {MAX_QUESTIONS} questions.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="pyq-percentage">PYQ / AI Split</Label>
-              <span className="text-sm text-muted-foreground">
-                PYQ {pyqPercentage}% · AI {aiPercentage}%
-              </span>
-            </div>
-            <Slider
-              id="pyq-percentage"
-              value={[pyqPercentage]}
-              min={0}
-              max={100}
-              step={5}
-              onValueChange={([value]) => setPyqPercentage(value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:col-span-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex flex-col gap-0.5">
-                <Label htmlFor="include-diagrams">Include Diagrams</Label>
-                <span className="text-xs text-muted-foreground">
-                  Run diagram detection and generate diagram specifications.
-                </span>
-              </div>
-              <Switch
-                id="include-diagrams"
-                checked={includeDiagrams}
-                onCheckedChange={setIncludeDiagrams}
-              />
-            </div>
-
-            {includeDiagrams && (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="diagram-percentage">Diagram Question Target</Label>
-                  <span className="text-sm text-muted-foreground">
-                    {diagramPercentage}%
-                  </span>
-                </div>
-                <Slider
-                  id="diagram-percentage"
-                  value={[diagramPercentage]}
-                  min={0}
-                  max={100}
-                  step={5}
-                  onValueChange={([value]) => setDiagramPercentage(value)}
-                />
-              </div>
-            )}
           </div>
         </CardContent>
         <CardFooter className="justify-end gap-2">

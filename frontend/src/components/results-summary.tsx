@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,11 +6,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import type { GeneratedPaperResponse } from "@/lib/types";
+import type { DiagramResult, GeneratedPaperResponse } from "@/lib/types";
 
 interface ResultsSummaryProps {
   paper: GeneratedPaperResponse;
+  onGenerateDiagrams?: () => void;
+  generatingDiagrams?: boolean;
+  diagramResults?: DiagramResult[] | null;
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -22,138 +24,64 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function DistributionList({
-  title,
-  data,
-  suffix = "",
-}: {
-  title: string;
-  data: Record<string, number>;
-  suffix?: string;
-}) {
-  const entries = Object.entries(data);
-  if (entries.length === 0) return null;
+export function ResultsSummary({
+  paper,
+  onGenerateDiagrams,
+  generatingDiagrams,
+  diagramResults,
+}: ResultsSummaryProps) {
+  const paperTypeLabel =
+    paper.paper_type === "UNIT_TEST_20" ? "Unit Test" : "CBSE Board";
 
-  return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium">{title}</h3>
-      <div className="flex flex-wrap gap-2">
-        {entries.map(([key, value]) => (
-          <Badge key={key} variant="outline">
-            {key}: {value}
-            {suffix}
-          </Badge>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const DIAGRAM_TYPE_LABELS: Record<string, string> = {
-  free_body: "Free Body",
-  circuit: "Circuit",
-  ray_diagram: "Ray Diagram",
-  graph: "Graph",
-  magnetic_field: "Magnetic Field",
-};
-
-export function ResultsSummary({ paper }: ResultsSummaryProps) {
-  const coverage = paper.diagram_coverage;
-  const evaluation = paper.quality_evaluation;
-  const diagramTypeCounts = coverage
-    ? Object.fromEntries(
-        Object.entries(DIAGRAM_TYPE_LABELS)
-          .map(([key, label]) => [label, coverage[key as keyof typeof coverage] as number])
-          .filter(([, value]) => (value as number) > 0)
-      )
-    : {};
+  const hasDiagrams = paper.summary.diagram_questions > 0;
+  const diagramsGenerated = diagramResults != null;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Paper Summary</CardTitle>
-        <CardDescription>
-          Paper {paper.paper_id} · generated{" "}
-          {new Date(paper.generated_at).toLocaleString()}
-        </CardDescription>
+        <CardDescription>Paper {paper.paper_id}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Difficulty" value={paper.difficulty} />
-          <Stat label="Total Questions" value={paper.total_questions} />
+          <Stat label="Paper Type" value={paperTypeLabel} />
+          <Stat label="Total Questions" value={paper.summary.total_questions} />
           <Stat label="Total Marks" value={paper.total_marks} />
           <Stat
-            label="PYQ / AI Split"
-            value={`${paper.pyq_percentage}% / ${paper.ai_percentage}%`}
+            label="Configured Split"
+            value={`${Math.round(paper.summary.configured_pyq_ratio * 100)}% / ${Math.round(paper.summary.configured_ai_ratio * 100)}%`}
+          />
+          <Stat
+            label="Actual Split"
+            value={`${(paper.summary.actual_pyq_ratio * 100).toFixed(1)}% / ${(paper.summary.actual_ai_ratio * 100).toFixed(1)}%`}
+          />
+          <Stat label="PYQ Questions" value={paper.summary.pyq_questions} />
+          <Stat label="AI Questions" value={paper.summary.ai_questions} />
+          <Stat
+            label="Diagram Questions"
+            value={paper.summary.diagram_questions}
           />
         </div>
-
-        <Separator />
-
-        <DistributionList
-          title="Chapter Weightage"
-          data={paper.chapter_weightage}
-          suffix="%"
-        />
-        <DistributionList
-          title="Chapter Distribution"
-          data={paper.chapter_distribution}
-        />
-        <DistributionList
-          title="Question Type Distribution"
-          data={paper.type_distribution}
-        />
-
-        {coverage && (
-          <>
-            <Separator />
-            <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium">Diagram Coverage</h3>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Stat label="Diagram Questions" value={coverage.diagram_questions} />
-                <Stat
-                  label="Diagram %"
-                  value={`${coverage.diagram_percentage}%`}
-                />
-              </div>
-              <DistributionList title="By Diagram Type" data={diagramTypeCounts} />
-            </div>
-          </>
-        )}
-
-        {paper.sections.length > 0 && (
-          <>
-            <Separator />
-            <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium">CBSE Section Structure</h3>
-              <div className="flex flex-wrap gap-2">
-                {paper.sections.map((section) => (
-                  <Badge key={section.name} variant="outline">
-                    Section {section.name} ({section.title}): {section.question_count}{" "}
-                    {section.question_count === 1 ? "question" : "questions"},{" "}
-                    {section.total_marks} marks
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {evaluation && (
-          <>
-            <Separator />
-            <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium">Quality Evaluation</h3>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <Stat label="Overall Score" value={`${evaluation.overall_score}%`} />
-                <Stat label="CBSE Compliance" value={`${evaluation.cbse_compliance}%`} />
-                <Stat label="Diagram Coverage" value={`${evaluation.diagram_coverage}%`} />
-                <Stat label="Chapter Coverage" value={`${evaluation.chapter_coverage}%`} />
-                <Stat label="Difficulty Balance" value={`${evaluation.difficulty_balance}%`} />
-                <Stat label="Question Diversity" value={`${evaluation.question_diversity}%`} />
-              </div>
-            </div>
-          </>
+        {hasDiagrams && onGenerateDiagrams && (
+          <div className="mt-3">
+            {diagramsGenerated ? (
+              <p className="text-xs text-muted-foreground">
+                Generated:{" "}
+                {diagramResults!.filter((r) => r.status === "SUCCESS").length} |{" "}
+                Failed:{" "}
+                {diagramResults!.filter((r) => r.status === "FAILED").length}
+              </p>
+            ) : (
+              <Button
+                onClick={onGenerateDiagrams}
+                disabled={generatingDiagrams}
+              >
+                {generatingDiagrams
+                  ? "Generating..."
+                  : `Generate ${paper.summary.diagram_questions} Diagram${paper.summary.diagram_questions !== 1 ? "s" : ""}`}
+              </Button>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

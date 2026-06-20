@@ -297,10 +297,11 @@ export default function TestPlaygroundPage() {
               </CardHeader>
               <CardContent>
                 {result.svg ? (
-                  <div
-                    className="overflow-x-auto rounded-lg border border-border bg-white p-2 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
-                    dangerouslySetInnerHTML={{ __html: result.svg }}
-                  />
+                    <div
+                      className="overflow-x-auto rounded-lg border border-border p-2 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+                      style={{ backgroundColor: "var(--diagram-surface)" }}
+                      dangerouslySetInnerHTML={{ __html: result.svg }}
+                    />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     No diagram was generated for this question.

@@ -1,0 +1,28 @@
+
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="800"
+         height="600">
+
+    <rect width="100%"
+          height="100%"
+          fill="white"/>
+    
+    <line x1="120" y1="500"
+          x2="700" y2="500"
+          stroke="black"
+          stroke-width="2"/>
+
+    <line x1="120" y1="500"
+          x2="120" y2="100"
+          stroke="black"
+          stroke-width="2"/>
+
+    <text x="690" y="530">Time</text>
+
+    <text x="40" y="120">Distance</text>
+    
+        <line x1="120" y1="500"
+              x2="650" y2="180"
+              stroke="green"
+              stroke-width="3"/>
+        </svg>
