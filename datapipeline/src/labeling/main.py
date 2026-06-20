@@ -15,14 +15,14 @@ from labeling.label_generator import LabelGenerator
 
 def main():
     # Define paths
-    input_dataset_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "final_dataset.json"
-    output_labeled_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
-    corrupted_out_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "corrupted_questions.json"
-    
+    input_dataset_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "final_dataset.json"
+    output_labeled_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "labeled_questions.json"
+    corrupted_out_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "corrupted_questions.json"
+
     reports_dir = project_root / "data" / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
     report_output_path = reports_dir / "labeling_report.json"
-    backend_report_path = project_root.parent / "backend" / "app" / "data" / "question_bank" / "labeling_report.json"
+    backend_report_path = project_root.parent / "archive" / "backend" / "app" / "data" / "question_bank" / "labeling_report.json"
 
     # Check if input file exists
     if not input_dataset_path.exists():

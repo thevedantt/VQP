@@ -12,12 +12,35 @@ from pydantic import BaseModel
 
 API_DIR = Path(__file__).resolve().parent
 BACKEND_V2 = API_DIR.parent
-BACKEND_DIR = BACKEND_V2.parent / "backend"
-APPROCH2_DIR = BACKEND_V2.parent / "approch2"
+REPO_ROOT = BACKEND_V2.parent
+BACKEND_DIR = REPO_ROOT / "archive" / "backend"
+APPROCH2_DIR = REPO_ROOT / "approch2"
 
 router = APIRouter()
 
 _cache = {"timestamp": 0, "data": None, "ttl": 30}
+
+# Subtrees with one folder per paper/question (e.g.
+# outputv2/diagram_runs/PAPER001/Q07/) would otherwise produce one
+# "directory" filter button per question - collapse anything under
+# these prefixes to the prefix itself.
+_COLLAPSE_DIRECTORY_PREFIXES = (
+    "backend_v2/outputv2/diagram_runs",
+)
+
+
+def _directory_label(fpath: Path) -> str:
+    """Relative directory path (from repo root) used as the gallery's
+    per-directory filter button label."""
+    try:
+        rel = fpath.parent.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return str(fpath.parent)
+
+    for prefix in _COLLAPSE_DIRECTORY_PREFIXES:
+        if rel == prefix or rel.startswith(prefix + "/"):
+            return prefix
+    return rel
 
 
 class OutputFile(BaseModel):
@@ -27,6 +50,7 @@ class OutputFile(BaseModel):
     size: str
     created_at: str
     source: str
+    directory: str
 
 
 class OutputCategory(BaseModel):
@@ -71,6 +95,7 @@ def _scan_dir(root: Path, source: str) -> list[OutputFile]:
                 size=_human_size(stat.st_size),
                 created_at=datetime.fromtimestamp(stat.st_ctime).isoformat(),
                 source=source,
+                directory=_directory_label(fpath),
             ))
         except OSError:
             continue
@@ -148,7 +173,10 @@ def list_outputs(refresh: bool = Query(False)):
     all_files.extend(_scan_dir(BACKEND_V2 / "generated_diagrams", "backend_v2"))
 
     for family in ("circuit", "fbd", "graph", "magnetic_field", "ray", "semiconductor", "extras"):
-        family_dir = APPROCH2 / family
+        # Scan the whole family folder, not just family/output - families
+        # like circuit also keep generated assets under assets/, opcompos1/,
+        # output1/, output2/, etc.
+        family_dir = APPROCH2_DIR / family
         if family_dir.exists():
             all_files.extend(_scan_dir(family_dir, "approch2"))
 

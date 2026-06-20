@@ -66,6 +66,7 @@ export default function OutputsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [directoryFilter, setDirectoryFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState<OutputFile | null>(null);
 
@@ -88,15 +89,30 @@ export default function OutputsPage() {
   const allFiles =
     data?.categories.flatMap((c) => c.files) ?? [];
 
-  let filtered = allFiles;
+  // Category + source narrow the file set first; the directory buttons
+  // are derived from *that* narrowed set, so picking "Ray Diagrams" only
+  // offers directories that actually contain ray diagrams to drill into.
+  let categoryAndSourceFiltered = allFiles;
 
   if (activeTab !== "All") {
     const cat = data?.categories.find((c) => c.name === activeTab);
-    filtered = cat?.files ?? [];
+    categoryAndSourceFiltered = cat?.files ?? [];
   }
 
   if (sourceFilter !== "all") {
-    filtered = filtered.filter((f) => f.source === sourceFilter);
+    categoryAndSourceFiltered = categoryAndSourceFiltered.filter(
+      (f) => f.source === sourceFilter
+    );
+  }
+
+  const directories = Array.from(
+    new Set(categoryAndSourceFiltered.map((f) => f.directory))
+  ).sort();
+
+  let filtered = categoryAndSourceFiltered;
+
+  if (directoryFilter) {
+    filtered = filtered.filter((f) => f.directory === directoryFilter);
   }
 
   if (search.trim()) {
@@ -165,7 +181,10 @@ export default function OutputsPage() {
                 key={s}
                 variant={sourceFilter === s ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSourceFilter(s)}
+                onClick={() => {
+                  setSourceFilter(s);
+                  setDirectoryFilter(null);
+                }}
                 className="capitalize"
               >
                 {s === "all" ? "All Sources" : s}
@@ -175,7 +194,7 @@ export default function OutputsPage() {
         </div>
 
         {/* Category tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex flex-wrap gap-2">
           {CATEGORY_TABS.map((tab) => {
             const count =
               tab === "All"
@@ -184,8 +203,11 @@ export default function OutputsPage() {
             return (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                onClick={() => {
+                  setActiveTab(tab);
+                  setDirectoryFilter(null);
+                }}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                   activeTab === tab
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -198,6 +220,46 @@ export default function OutputsPage() {
               </button>
             );
           })}
+        </div>
+
+        {/* Directory buttons - scoped to the active category/source */}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium text-muted-foreground">
+            Directory
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setDirectoryFilter(null)}
+              className={`shrink-0 rounded-md border px-2.5 py-1 text-[11px] font-mono transition-colors ${
+                directoryFilter === null
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-muted text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              All Directories
+            </button>
+            {directories.map((dir) => {
+              const count = categoryAndSourceFiltered.filter(
+                (f) => f.directory === dir
+              ).length;
+              return (
+                <button
+                  key={dir}
+                  onClick={() =>
+                    setDirectoryFilter(directoryFilter === dir ? null : dir)
+                  }
+                  className={`shrink-0 rounded-md border px-2.5 py-1 text-[11px] font-mono transition-colors ${
+                    directoryFilter === dir
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-muted text-muted-foreground hover:bg-accent"
+                  }`}
+                >
+                  {dir}
+                  <span className="ml-1 opacity-70">{count}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Gallery */}
@@ -353,6 +415,7 @@ export default function OutputsPage() {
             {/* Modal footer: file info */}
             <div className="border-t border-border px-5 py-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
               <span>Path: {preview.path}</span>
+              <span>Directory: {preview.directory}</span>
               <span>Size: {preview.size}</span>
               <span>Source: {preview.source}</span>
               <span>Type: {preview.type}</span>

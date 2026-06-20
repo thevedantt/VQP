@@ -137,6 +137,7 @@ export interface OutputFile {
   size: string;
   created_at: string;
   source: string;
+  directory: string;
 }
 
 export interface OutputCategory {
