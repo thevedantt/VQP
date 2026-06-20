@@ -46,4 +46,41 @@
       </marker>
     </defs>
     <rect class="bg" width="100%" height="100%"/>
+    
+    <text class="title" x="400" y="55"
+          text-anchor="middle">PN Junction (Unbiased)</text>
+
+    <text class="lbl-sm" x="400" y="80"
+          text-anchor="middle">No external bias applied</text>
+
+    <!-- P region -->
+    <rect class="p-reg" x="260" y="220" width="130" height="160"/>
+    <text class="lbl" x="325" y="310" text-anchor="middle">P</text>
+
+    <text class="cr" x="280" y="260">+</text>
+    <text class="cr" x="355" y="255">+</text>
+    <text class="cr" x="310" y="345">+</text>
+    <text class="cr" x="275" y="305">+</text>
+    <text class="cr" x="345" y="340">+</text>
+    <text class="cr" x="290" y="355">+</text>
+
+    <!-- N region -->
+    <rect class="n-reg" x="410" y="220" width="130" height="160"/>
+    <text class="lbl" x="475" y="310" text-anchor="middle">N</text>
+
+    <text class="cr" x="440" y="260">&#x2022;</text>
+    <text class="cr" x="505" y="255">&#x2022;</text>
+    <text class="cr" x="465" y="345">&#x2022;</text>
+    <text class="cr" x="500" y="305">&#x2022;</text>
+    <text class="cr" x="520" y="340">&#x2022;</text>
+
+    <!-- Depletion region -->
+    <rect class="dep" x="390" y="220" width="20" height="160"/>
+    <text class="lbl" x="400" y="205"
+          text-anchor="middle">Depletion Layer</text>
+
+    <text class="ion" x="395" y="260">&#x2212;</text>
+    <text class="ion" x="405" y="260">+</text>
+    <text class="ion" x="395" y="345">&#x2212;</text>
+    <text class="ion" x="405" y="345">+</text>
     </svg>

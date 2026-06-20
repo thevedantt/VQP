@@ -21,7 +21,7 @@ BACKEND_V2 = PIPELINE_DIR.parent
 sys.path.insert(0, str(BACKEND_V2))
 
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -30,6 +30,7 @@ from svglib.svglib import svg2rlg
 
 from pipeline.normalize_unicode import normalize
 from pipeline.diagram_pipeline import resolve_compiled_svg
+from pipeline.question_formatter import has_hierarchy, parse_subparts
 
 
 OUTPUTV2_DIR = BACKEND_V2 / "outputv2"
@@ -54,16 +55,69 @@ STYLES["Heading4"].fontName = "DejaVuSans-Bold"
 
 PAGE_MARGIN = 2 * cm
 CONTENT_HEIGHT = A4[1] - 2 * PAGE_MARGIN
-MAX_DIAGRAM_HEIGHT = CONTENT_HEIGHT * 0.6
+# Tighter than before (was 0.6): a question+diagram KeepTogether block
+# that doesn't fit in whatever space is left on the page gets pushed
+# whole to the next page, leaving the remainder of the current page
+# blank - keeping diagrams smaller makes that block more likely to fit.
+MAX_DIAGRAM_HEIGHT = CONTENT_HEIGHT * 0.45
 
 INSTRUCTIONS = (
     "All questions are compulsory. Marks for each question are indicated "
     "against it. Draw diagrams wherever necessary and label them clearly."
 )
 
+# One indented style per CBSE sub-part nesting level: (a)/(b) -> 0,
+# (i)/(ii) -> 1, (I)/(II) -> 2.
+_INDENT_PER_LEVEL = 0.7 * cm
+SUBPART_STYLES = [
+    ParagraphStyle(
+        f"SubPart{lvl}",
+        parent=STYLES["BodyText"],
+        fontName="DejaVuSans",
+        leftIndent=lvl * _INDENT_PER_LEVEL,
+        spaceBefore=2,
+        spaceAfter=2,
+    )
+    for lvl in range(3)
+]
+OR_STYLE = ParagraphStyle(
+    "OrDivider",
+    parent=STYLES["BodyText"],
+    fontName="DejaVuSans-Bold",
+    alignment=1,  # TA_CENTER
+    spaceBefore=4,
+    spaceAfter=4,
+)
+OPTION_STYLE = ParagraphStyle(
+    "McqOption",
+    parent=STYLES["BodyText"],
+    fontName="DejaVuSans",
+    leftIndent=0.4 * cm,
+)
 
-def _para_text(text):
-    return escape(normalize(text) or "").replace("\n", "<br/>")
+
+def _question_flowables(text):
+    """Render question text as either one plain paragraph (no CBSE
+    numbering markers found) or a nested, indented sequence of
+    sub-part paragraphs - never as raw line-by-line extraction text."""
+    blocks = parse_subparts(text)
+    if not blocks:
+        return [Paragraph(escape(normalize(text) or ""), STYLES["BodyText"])]
+
+    if not has_hierarchy(blocks):
+        return [Paragraph(escape(normalize(blocks[0]["text"])), STYLES["BodyText"])]
+
+    flowables = []
+    for b in blocks:
+        if b["level"] == "or":
+            flowables.append(Paragraph("OR", OR_STYLE))
+            continue
+        label = escape(b["label"]) if b["label"] else ""
+        body = escape(normalize(b["text"]))
+        content = f"<b>{label}</b> {body}".strip() if label else body
+        style = SUBPART_STYLES[min(b["level"] or 0, 2)]
+        flowables.append(Paragraph(content, style))
+    return flowables
 
 
 def _scaled_drawing(svg_path, max_width, max_height):
@@ -75,6 +129,7 @@ def _scaled_drawing(svg_path, max_width, max_height):
     drawing.scale(scale, scale)
     drawing.width *= scale
     drawing.height *= scale
+    drawing.hAlign = "CENTER"
     return drawing
 
 
@@ -97,14 +152,6 @@ def _resolve_diagram_path(q, paper_id):
     return None
 
 
-def _options_text(options):
-    if not options:
-        return None
-    return "<br/>".join(
-        f"{escape(str(k))}) {escape(normalize(str(v)))}" for k, v in options.items()
-    )
-
-
 def _append_question(story, q, content_width, paper_id):
     block = []
 
@@ -115,12 +162,15 @@ def _append_question(story, q, content_width, paper_id):
         label = f"{label}  ({q['source']})"
 
     block.append(Paragraph(label, STYLES["Heading4"]))
-    block.append(Paragraph(_para_text(q.get("question", "")), STYLES["BodyText"]))
+    block.extend(_question_flowables(q.get("question", "")))
 
-    options_text = _options_text(q.get("options"))
-    if options_text:
-        block.append(Spacer(1, 0.1 * cm))
-        block.append(Paragraph(options_text, STYLES["BodyText"]))
+    options = q.get("options")
+    if options:
+        block.append(Spacer(1, 0.15 * cm))
+        for k, v in options.items():
+            opt_text = f"<b>({escape(str(k))})</b> {escape(normalize(str(v)))}"
+            block.append(Paragraph(opt_text, OPTION_STYLE))
+            block.append(Spacer(1, 0.12 * cm))
 
     diagram_path = _resolve_diagram_path(q, paper_id)
     if diagram_path:

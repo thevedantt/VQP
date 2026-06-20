@@ -72,7 +72,14 @@ def run(question, paper_id, question_id):
     family = raw_result.get("family")
     error = raw_result.get("error")
     reason = raw_result.get("reason")
+    # Prefer the evaluator-corrected blueprint - it's what actually
+    # compiled into the SVG. Falling back to raw_blueprint would re-adapt
+    # whatever issues the evaluator had already fixed (Phase 4.10 bugfix:
+    # this used to always adapt raw_blueprint, so a later revision reading
+    # adapted_blueprint.json as its starting point would resurrect a
+    # non-canonical field value the renderer doesn't recognize).
     raw_blueprint = raw_result.get("raw_blueprint")
+    enhanced_blueprint = raw_result.get("enhanced_blueprint") or raw_blueprint
     svg_filename = raw_result.get("svg_path")
 
     full_svg_path = None
@@ -81,7 +88,7 @@ def run(question, paper_id, question_id):
         gm.family = family
 
         # Save adapted blueprint (the one artifact the existing pipeline skips)
-        adapted = ADAPTERS[family](raw_blueprint or {})
+        adapted = ADAPTERS[family](enhanced_blueprint or {})
         _save_adapted_blueprint(adapted, paper_id, question_id)
 
     gm.family = family

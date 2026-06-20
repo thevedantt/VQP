@@ -146,10 +146,18 @@ class SuggestionEngine:
                 ),
             }
 
-        question = history.load_question(paper_id, question_id)
-        evaluation = history.load_evaluation_report(paper_id, question_id)
         metadata = history.load_metadata(paper_id, question_id)
         family = (metadata or {}).get("family") or blueprint.get("family", "")
+
+        # Same drift guard as RevisionEngine: if a prior revision corrupted
+        # the blueprint into a different family's shape, suggest against
+        # the original blueprint instead of the drifted one.
+        loaded_family = (blueprint.get("family") or blueprint.get("diagram_family") or "").lower().strip()
+        if loaded_family and family and loaded_family != family.lower().strip():
+            blueprint = history.load_initial_blueprint(paper_id, question_id) or blueprint
+
+        question = history.load_question(paper_id, question_id)
+        evaluation = history.load_evaluation_report(paper_id, question_id)
         compiler_report = _build_compiler_report(paper_id, question_id)
 
         try:

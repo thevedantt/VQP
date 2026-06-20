@@ -81,6 +81,36 @@ def load_question(paper_id, question_id):
     return ""
 
 
+def load_initial_blueprint(paper_id, question_id):
+    """Load the blueprint from the original (pre-revision) generation,
+    bypassing any revision history entirely. Used both as the base case
+    for load_latest_blueprint() and as a recovery path when revision
+    history has drifted to the wrong family's schema shape.
+
+    Prefers the evaluator's corrected_blueprint (evaluation_report.json) -
+    that's what actually compiled into the initial SVG. generated_blueprint
+    /adapted_blueprint.json are the pre-evaluation blueprint and would
+    reintroduce whatever issues the evaluator had already fixed (e.g. a
+    non-canonical object_type that the renderer doesn't recognize)."""
+    run_dir = _run_dir(paper_id, question_id)
+
+    eval_path = run_dir / "evaluation_report.json"
+    if eval_path.exists():
+        with open(eval_path, "r", encoding="utf-8") as f:
+            evaluation = json.load(f)
+        corrected = evaluation.get("corrected_blueprint")
+        if corrected:
+            return corrected
+
+    from diagram_generation.diagram_generation_pipeline import DIAGRAM_RUNS_DIR
+    for name in ("generated_blueprint.json", "adapted_blueprint.json"):
+        fallback = DIAGRAM_RUNS_DIR / paper_id / question_id / name
+        if fallback.exists():
+            with open(fallback, "r", encoding="utf-8") as f:
+                return json.load(f)
+    return None
+
+
 def load_latest_blueprint(paper_id, question_id):
     """Load the most recent blueprint: latest revision if any, else the
     initial generated_blueprint.json or adapted_blueprint.json."""
@@ -92,14 +122,7 @@ def load_latest_blueprint(paper_id, question_id):
             with open(bp_path, "r", encoding="utf-8") as f:
                 return json.load(f)
 
-    from diagram_generation.diagram_generation_pipeline import DIAGRAM_RUNS_DIR
-    for name in ("generated_blueprint.json", "adapted_blueprint.json"):
-        fallback = DIAGRAM_RUNS_DIR / paper_id / question_id / name
-        if fallback.exists():
-            with open(fallback, "r", encoding="utf-8") as f:
-                return json.load(f)
-
-    return None
+    return load_initial_blueprint(paper_id, question_id)
 
 
 def load_evaluation_report(paper_id, question_id):

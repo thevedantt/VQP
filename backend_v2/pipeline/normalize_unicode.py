@@ -88,6 +88,12 @@ _SUPERSCRIPT_SIGNS = {"-": "⁻", "−": "⁻", "–": "⁻", "+": "⁺"}
 # interchangeably as a minus in some source papers), or a plain hyphen.
 _SCI_NOTATION_RE = re.compile(r"(?<=[×x])(\s?)10([+−–-]?)(\d{1,3})\b")
 
+# A fill-in-the-blank underline sometimes survives PDF extraction as a
+# run of plain hyphens instead of underscores (the original is a drawn
+# line, not text, so different extractors render it differently). Any
+# standalone run of 3+ hyphens is normalized to a fixed-width answer blank.
+_BLANK_PLACEHOLDER_RE = re.compile(r"(?<![-\w])-{3,}(?![-\w])")
+
 # Paper-level instructions that bled into the previous question's text
 # during PDF extraction - always trailing, so matched through end-of-string.
 _ARTIFACT_PATTERNS = [
@@ -136,16 +142,23 @@ def strip_paper_artifacts(text):
     return text.strip()
 
 
+def fix_blank_placeholder(text):
+    if not text:
+        return text
+    return _BLANK_PLACEHOLDER_RE.sub("Answer: ______________________", text)
+
+
 def is_clean(text):
     """True if no unmapped Private-Use-Area artifact remains."""
     return bool(text) and not any(0xE000 <= ord(c) <= 0xF8FF for c in text)
 
 
 def normalize(text):
-    """Full pipeline: symbol decode -> scientific notation -> artifact strip."""
+    """Full pipeline: symbol decode -> scientific notation -> artifact strip -> blank placeholder."""
     if not text:
         return text
     text = decode_symbols(text)
     text = fix_scientific_notation(text)
     text = strip_paper_artifacts(text)
+    text = fix_blank_placeholder(text)
     return text

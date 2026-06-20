@@ -213,6 +213,7 @@ def generate_diagram_for_question(question, paper_id=None, question_id=None, log
         "svg_path": None,
         "error": None,
         "raw_blueprint": None,
+        "enhanced_blueprint": None,
         "timing": {
             "generation_seconds": None,
             "evaluation_seconds": None,
@@ -397,6 +398,7 @@ def generate_diagram_for_question(question, paper_id=None, question_id=None, log
         result["status"] = "SUCCESS"
         result["svg_path"] = svg_filename
         result["raw_blueprint"] = raw_blueprint
+        result["enhanced_blueprint"] = enhanced_blueprint
         return result
 
     except Exception as e:

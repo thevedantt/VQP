@@ -140,6 +140,33 @@ class RevisionEngine:
                 logger.log_error("REVISION ENGINE", result["error"])
                 return result
 
+            # Guard against a previous revision having drifted to a
+            # different family's blueprint shape (e.g. an LLM turning a
+            # semiconductor blueprint into a circuit one while "revising"
+            # it - the compiler then gets a blueprint with none of the
+            # fields it expects, producing a blank SVG). If the loaded
+            # blueprint's own family tag doesn't match the resolved
+            # family, it's not safe to revise further - recover from the
+            # original pre-revision blueprint instead.
+            loaded_family = (
+                current_bp.get("family") or current_bp.get("diagram_family") or ""
+            ).lower().strip()
+            if loaded_family and loaded_family != family:
+                logger.log_error(
+                    "REVISION ENGINE",
+                    f"Latest blueprint for {question_id} is tagged "
+                    f"'{loaded_family}' but should be '{family}' - revision "
+                    "history has drifted. Recovering from the original "
+                    "generated blueprint instead.",
+                )
+                current_bp = history.load_initial_blueprint(paper_id, question_id)
+                if current_bp is None:
+                    result["error"] = (
+                        f"Blueprint family drifted to '{loaded_family}' and no "
+                        "original blueprint is available to recover from."
+                    )
+                    return result
+
             question = history.load_question(paper_id, question_id)
 
             # ---- Step 2: Build the change list ------------------------------
