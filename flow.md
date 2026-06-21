@@ -122,6 +122,10 @@ sequenceDiagram
     API-->>User: Return paper JSON
 ```
 
+<p align="center">
+  <img src="./frontend/public/AI-Driven_Question_Paper_Architecture.png" alt="AI-Driven Question Paper Architecture" width="100%">
+</p>
+
 ---
 
 ## 4. Diagram Generation Pipeline
