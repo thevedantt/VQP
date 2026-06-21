@@ -223,34 +223,92 @@ PDF Export
 
 ---
 
-# 🤖 LLMs Evaluated
+# 🤖 LLM Infrastructure
 
-| Model                    | Usage                  | Status           |
-| ------------------------ | ---------------------- | ---------------- |
-| GPT OSS 120B             | Question Generation    | ✅ Current        |
-| Gemini 3.5 Flash         | Evaluation & Revision  | ✅ Current        |
-| Qwen 3 235B Thinking     | Diagram Evaluation     | ⚠ Tested         |
-| DeepSeek R1              | Diagram Reasoning      | ⚠ Tested         |
-| Flux Schnell             | Diagram Image Research | ❌ Discarded      |
-| ChatGPT Image Generation | Knowledge Extraction   | ⚠ Research Phase |
+| Provider              | Model                 | Usage                      | Avg Response Time | Cost Category  | Status           |
+| --------------------- | --------------------- | -------------------------- | ----------------- | -------------- | ---------------- |
+| OpenRouter            | GPT OSS 120B          | Question Generation        | 5–15 sec          | Low            | ✅ Current        |
+| OpenRouter            | GPT OSS 120B          | Blueprint Generation       | 5–20 sec          | Low            | ✅ Current        |
+| Google Gemini API     | Gemini 3.5 Flash      | Evaluation & Validation    | 2–8 sec           | Very Low       | ✅ Current        |
+| OpenRouter            | Qwen 3 235B Thinking  | Diagram Evaluation         | 15–45 sec         | Medium         | ⚠ Tested         |
+| OpenRouter            | DeepSeek R1           | Diagram Reasoning          | 20–60 sec         | Medium–High    | ⚠ Tested         |
+| Flux Schnell          | —                     | Diagram Image Research     | 3–10 sec          | Low            | ❌ Discarded      |
+| ChatGPT Image Gen     | —                     | Diagram Knowledge Extraction | 10–30 sec       | High           | ⚠ Research Phase |
 
----
+## 💰 Cost Considerations
 
-# 🧪 Why Direct Image Generation Was Rejected
+### ✅ Current Production Stack
 
-| Problem                   | Impact   |
-| ------------------------- | -------- |
-| Inconsistent Outputs      | High     |
-| Missing Labels            | High     |
-| Physics Errors            | High     |
-| No Validation             | Critical |
-| Non-Deterministic Results | Critical |
+| Stage                  | Provider     |
+| ---------------------- | ------------ |
+| Question Generation    | GPT OSS 120B (OpenRouter) |
+| Blueprint Generation   | GPT OSS 120B (OpenRouter) |
+| Evaluation & Validation | Gemini 3.5 Flash |
+| Diagram Rendering      | Local SVG Compilers |
+| PDF Export             | Local Python Engine |
 
-Final Decision:
+### 🔻 Why Costs Are Low
 
-AI generates structure.
+VisualQ does **not** generate images using AI image models.
 
-Renderers generate diagrams.
+Instead:
+
+```
+Question → LLM → Blueprint → SVG Compiler → Diagram
+```
+
+Rather than:
+
+```
+Question → Image Model → PNG
+```
+
+> This removes the most expensive step from the pipeline.
+
+### 📊 Estimated Cost Per Paper
+
+**Unit Test (20 Marks)**
+
+| Stage                  | Cost Source   |
+| ---------------------- | ------------- |
+| Question Selection     | Local         |
+| PYQ Retrieval          | Local         |
+| Question Generation    | OpenRouter    |
+| Diagram Classification | OpenRouter    |
+| Blueprint Generation   | OpenRouter    |
+| Evaluation             | Gemini        |
+| SVG Rendering          | Local         |
+| PDF Export             | Local         |
+
+**Estimated Cost: ₹0 – ₹0.50 per paper**
+
+**Full CBSE Paper (70 Marks)**
+
+| Metric             | Value     |
+| ------------------ | --------- |
+| Questions          | 30–35     |
+| Diagram Questions  | 5–8       |
+| LLM Calls          | ~40–60    |
+| SVG Compilations   | 5–8       |
+| PDF Exports        | 1         |
+
+**Estimated Cost: ₹0.50 – ₹5 per paper**
+
+### 🎯 Cost Optimization Strategy
+
+VisualQ follows a hybrid architecture:
+
+```
+OpenRouter → Reasoning & Content Generation
+Gemini → Evaluation & Correction
+Local Engines → Rendering & Export
+```
+
+> This architecture minimizes API usage while maintaining high diagram accuracy and deterministic outputs.
+
+### 📌 Summary
+
+> VisualQ reduces generation costs by using LLMs only for reasoning and blueprint creation, while all diagram rendering and PDF generation are executed locally through deterministic engines. This significantly lowers operational costs compared to AI image generation workflows.
 
 ---
 
