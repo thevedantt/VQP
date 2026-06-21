@@ -271,6 +271,50 @@ const APPROACHES: ApproachData[] = [
     lessons: ["Human feedback loops significantly improve output quality"],
     outcome: "Under Development — enabling iterative diagram refinement.",
   },
+  {
+    id: "6",
+    number: "6",
+    title: "Human Feedback Driven Fine-Tuning Engine",
+    status: "Proposed",
+    statusVariant: "secondary",
+    keyIdea:
+      "Transform VisualQ from a prompt-driven system into a continuously learning system.",
+    result:
+      "A self-improving educational AI system that learns from human feedback.",
+    overview:
+      "Transform VisualQ from a prompt-driven system into a continuously learning system. Instead of relying on prompt engineering and general-purpose LLM reasoning, the system learns to generate better blueprints directly from Physics questions by fine-tuning on human-reviewed outputs.",
+    flow: [
+      { label: "Question", description: "Physics question input" },
+      { label: "Blueprint", description: "Generated structured blueprint" },
+      { label: "SVG", description: "Rendered diagram output" },
+      { label: "Human Review", description: "Teacher rating & feedback" },
+      { label: "Dataset", description: "Stored as training example" },
+      {
+        label: "Fine-Tuned Model",
+        description: "Learns to generate better blueprints",
+      },
+    ],
+    advantages: [
+      "Higher blueprint accuracy",
+      "Reduced evaluator corrections",
+      "Better family selection",
+      "Improved diagram consistency",
+      "Faster generation pipeline",
+      "Reduced prompt complexity",
+      "Domain-specialized Physics reasoning",
+    ],
+    problems: [
+      "Requires collecting sufficient training data (1-2 month trial period)",
+      "Fine-tuning pipeline needs to be built and maintained",
+      "Dependency on human reviewer availability",
+    ],
+    lessons: [
+      "Blueprints are structured, explainable, and easy to evaluate — ideal for fine-tuning",
+      "Images are expensive to train and difficult to validate; blueprints preserve deterministic rendering",
+    ],
+    outcome:
+      "Proposed — transforms VisualQ from a rule-guided diagram generator into a self-improving educational AI system capable of learning from real-world usage and human feedback.",
+  },
 ];
 
 /* ── APPROACHES HELPERS (UNCHANGED) ── */
