@@ -134,16 +134,36 @@ PDF Export
 
 # 🔬 Evolution of VisualQ
 
-| Approach     | Description                     | Result                 |
-| ------------ | ------------------------------- | ---------------------- |
-| Approach 1   | Direct AI Image Generation      | ❌ Rejected             |
-| Approach 1.5 | Diagram Knowledge Base Creation | ✅ Foundation           |
-| Approach 2   | Schema-Based Representation     | ⚠ Partial Success      |
-| Approach 3   | APPROCH2 Compiler System        | ✅ Stable               |
-| Approach 3.1 | Example-Based Generation        | ✅ Better Accuracy      |
-| Approach 3.2 | Hybrid Generation               | ✅ Current Production   |
-| Approach 4   | Diagram Engine V2               | ✅ Current Architecture |
-| Approach 5   | Diagram Revision Engine         | 🚧 In Progress         |
+## Detailed Approach History
+
+| Approach | Why | Implemented | Problem | Why Next | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Approach 1** — Direct AI Image Generation | Wanted AI to directly generate Physics diagrams from questions. | ChatGPT Image Generation, Flux Schnell, prompt engineering. | Diagrams were inconsistent, labels were missing, and outputs could not be validated. | Needed a deterministic and controllable solution. | ❌ Rejected |
+| **Approach 1.5** — Diagram Knowledge Base Creation | Understand what information is actually needed to recreate CBSE diagrams. | Collected Physics diagrams and extracted diagram structure, components, labels, and relationships. | Knowledge existed but there was no generation mechanism. | Needed a structured representation of diagrams. | ✅ Foundation |
+| **Approach 2** — Schema-Based Diagram System | Represent diagrams as structured data instead of images. | Created schemas for Ray, Circuit, FBD, Magnetic, Semiconductor, and Graph diagrams. | Schemas defined structure but could not generate visuals. | Needed a rendering engine. | ⚠ Partial Success |
+| **Approach 2.5** — Manual Blueprint Generation | Test whether schemas could be converted into actual diagrams. | Handwritten blueprints and simple renderers. | Worked only for predefined cases and could not generalize. | Needed automated diagram generation. | ⚠ Partial Success |
+| **Approach 3** — APPROCH2 Rendering Engine | Build deterministic Physics diagram generation. | Validator, Layout Engine, Renderer, Compiler for all diagram families. | Could render diagrams but could not understand questions. | Needed AI reasoning before rendering. | ✅ Stable |
+| **Approach 3.1** — LLM-Based Blueprint Generation | Convert questions into blueprints automatically. | Question → Blueprint using LLM. | Blueprints were inconsistent and often inaccurate. | Needed example-guided generation. | ⚠ Partial Success |
+| **Approach 3.2** — Example Retrieval System | Reuse successful diagrams instead of generating everything from scratch. | Question → Similarity Search → Best Example → Blueprint Modification. | Some questions had no similar examples. | Needed fallback generation. | ✅ Better Accuracy |
+| **Approach 3.3** — Hybrid Diagram Generation | Handle both known and unseen questions. | Similarity >= 0.85 → Example Based \| Similarity < 0.85 → Schema Based. | Blueprint quality still varied. | Needed validation and correction. | ✅ Current Production |
+| **Approach 4** — Diagram Intelligence Engine V2 | Create a complete end-to-end pipeline. | Classifier, Schema Router, Retriever, Blueprint Generator, Evaluator, Compiler. | — | Needed user feedback and revisions. | ✅ Current Architecture |
+| **Approach 4.1** — Quality & Validation Layer | Improve diagram correctness. | Family Validator, Confidence Score, Explanation Engine, Schema Fallback, Traceability. | — | Needed compiler compatibility. | ✅ Current Architecture |
+| **Approach 4.2** — Adapter Layer | Backend schemas and APPROCH2 compilers used different formats. | Adapters for all six diagram families. | — | Needed production verification. | ✅ Current Architecture |
+| **Approach 4.3** — End-to-End Testing | Verify every diagram family. | Test Runner, Validation Suite, SVG Verification. | — | Needed a reusable service layer. | ✅ Current Architecture |
+| **Approach 4.4** — Diagram Engine | Create a single public API. | `DiagramEngine.generate_diagram()` | — | Needed paper generation integration. | ✅ Current Architecture |
+| **Approach 4.5** — Paper Generation Integration | Generate diagrams directly from generated papers. | Paper → Diagram Detection → Diagram Engine → SVG. | — | Needed scaling and reliability. | ✅ Current Architecture |
+| **Approach 4.8** — Production Optimizations | Handle real-world paper generation. | Parallel Generation, Semiconductor Routing, Component Mapping, SVG Validation, Versioned Outputs. | — | Need revision workflows. | ✅ Current Architecture |
+| **Approach 5** — Diagram Revision Engine (Current) | Allow users to improve generated diagrams. | Generated Diagram → AI Suggestions → User Feedback → Revision Prompt → New Blueprint → New SVG Version. | — | — | 🚧 In Progress |
+
+## One-Line Summary
+
+| Approach | Summary |
+| :--- | :--- |
+| **Approach 1** | AI generated images. |
+| **Approach 2** | Represent diagrams as data. |
+| **Approach 3** | Build deterministic renderers. |
+| **Approach 4** | Add AI reasoning around renderers. |
+| **Approach 5** | Add human-guided diagram revisions. |
 
 ---
 
