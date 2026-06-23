@@ -33,7 +33,7 @@ The platform combines:
 
 ---
 
-## 🖥️ Interface
+ 🖥️ Interface
 
 <p align="center">
   <img src="./frontend/public/vqp.png" alt="VisualQ Interface" width="100%">
