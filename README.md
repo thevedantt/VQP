@@ -32,7 +32,6 @@ The platform combines:
 * Diagram Revision Workflows
 
 ---
-
 ## 🖥️ Interface
 
 <p align="center">
