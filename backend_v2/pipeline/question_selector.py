@@ -44,10 +44,16 @@ sys.path.insert(0, str(BACKEND_V2))
 from pipeline.ai_question_generator import AIQuestionGenerator
 from pipeline.diagram_detector import detect_diagram_family, detect_diagram_required
 from pipeline.normalize_unicode import normalize
+from pipeline.question_quality import score_question
 
 
 DESCRIPTIVE_DATASET_PATH = BACKEND_V2 / "data" / "descriptive_questions.json"
 MCQ_DATASET_PATH = BACKEND_V2 / "data" / "mcq_questions.json"
+PAPERS_DIR = BACKEND_V2 / "outputv2" / "papers"
+
+# Phase 4.9, Task A: how many of the most-recently-generated papers count
+# as "recent" for cross-run question-reuse avoidance.
+RECENT_PAPERS_WINDOW = 5
 
 _pyq_pool = None
 
@@ -84,9 +90,40 @@ def _normalize_text(text):
     return re.sub(r"\s+", " ", text or "").strip().lower()
 
 
+def _load_recent_paper_history(limit=RECENT_PAPERS_WINDOW, exclude_paper_id=None):
+    """Phase 4.9, Task A: pyq_ids used in each of the most recently
+    generated papers (outputv2/papers/*.json), most-recent first.
+
+    Recency is by file modification time, not paper_id naming - paper_ids
+    aren't generated in strict sequential order (test/verify runs are
+    interleaved with real ones). Returns a list of sets so callers can
+    tell *how* recently a question was reused, not just whether it was.
+    """
+    if not PAPERS_DIR.exists():
+        return []
+
+    files = [
+        p for p in PAPERS_DIR.glob("*.json")
+        if not exclude_paper_id or p.stem != exclude_paper_id
+    ]
+    files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+
+    history = []
+    for path in files[:limit]:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+        ids = {q.get("pyq_id") for q in data.get("questions", []) if q.get("pyq_id")}
+        history.append(ids)
+    return history
+
+
 class QuestionSelector:
 
-    def __init__(self, pyq_ratio=60, ai_ratio=40, chapter_filters=None, difficulty=None, logger=None):
+    def __init__(self, pyq_ratio=60, ai_ratio=40, chapter_filters=None, difficulty=None,
+                 logger=None, paper_id=None):
         total_ratio = pyq_ratio + ai_ratio
         if total_ratio <= 0:
             raise ValueError("pyq_ratio + ai_ratio must be > 0")
@@ -103,9 +140,27 @@ class QuestionSelector:
         self.used_concepts = set()
         self.chapter_usage = Counter()  # Task 4: section/chapter balancing
 
+        # Phase 4.9, Task A: question diversity across paper generations.
+        # paper_history[0] is the most recently generated paper's pyq_id
+        # set, paper_history[-1] the oldest still inside the window.
+        self.paper_history = _load_recent_paper_history(exclude_paper_id=paper_id)
+        self.recently_used_pyq_ids = set().union(*self.paper_history) if self.paper_history else set()
+        self.reused_recent_pyq_ids = []  # populated as recent reuse actually happens
+
+    def _recency_penalty(self, pyq_id):
+        for rank, ids in enumerate(self.paper_history):
+            if pyq_id in ids:
+                return 20 * (len(self.paper_history) - rank)
+        return 0
+
+    def _recency_adjusted_score(self, candidate):
+        """recently_used_score = quality_score - penalty (Phase 4.9, Task A)."""
+        quality = score_question({**candidate, "source": "PYQ"})
+        return quality - self._recency_penalty(candidate["pyq_id"])
+
     # ---- internal helpers -------------------------------------------------
 
-    def _pyq_candidates(self, qtype, allow_concept_repeat=False):
+    def _pyq_candidates(self, qtype, allow_concept_repeat=False, allow_recent_reuse=False):
         pool = _load_pyq_pool()
         candidates = []
         for q in pool:
@@ -117,16 +172,24 @@ class QuestionSelector:
                 continue
             if not allow_concept_repeat and q.get("concept") and q["concept"] in self.used_concepts:
                 continue
+            # Phase 4.9, Task A: avoid questions used in the last
+            # RECENT_PAPERS_WINDOW papers unless the pool is exhausted
+            # (allow_recent_reuse is only set true by the last fallback tier).
+            if not allow_recent_reuse and q["pyq_id"] in self.recently_used_pyq_ids:
+                continue
             if self.chapter_filters and q.get("chapter") and q["chapter"] not in self.chapter_filters:
                 continue
             if self.difficulty and q.get("difficulty") and q["difficulty"] != self.difficulty:
                 continue
             candidates.append(q)
 
-        # Task 4: prefer the least-used chapter so far in this paper,
-        # so one block doesn't pull 5 questions from the same chapter.
-        # Stable sort keeps dataset order among equally-used chapters.
-        candidates.sort(key=lambda c: self.chapter_usage.get(c.get("chapter"), 0))
+        # Task 4: prefer the least-used chapter so far in this paper, so one
+        # block doesn't pull 5 questions from the same chapter; within a
+        # chapter tier, prefer the higher recency-adjusted quality score
+        # (Phase 4.9, Task A). Stable sort keeps dataset order among ties.
+        candidates.sort(
+            key=lambda c: (self.chapter_usage.get(c.get("chapter"), 0), -self._recency_adjusted_score(c))
+        )
         return candidates
 
     def _take_pyq(self, candidate):
@@ -135,6 +198,8 @@ class QuestionSelector:
         if candidate.get("concept"):
             self.used_concepts.add(candidate["concept"])
         self.chapter_usage[candidate.get("chapter")] += 1
+        if candidate["pyq_id"] in self.recently_used_pyq_ids:
+            self.reused_recent_pyq_ids.append(candidate["pyq_id"])
 
     def _take_text(self, text, chapter=None):
         self.used_texts.add(_normalize_text(text))
@@ -174,16 +239,26 @@ class QuestionSelector:
         return ai_q
 
     def _pyq_candidates_with_fallback(self, qtype):
-        """Strict (no concept repeat) candidates, then concept-repeat
-        candidates appended as a last-resort tail (Task 2's "unless
-        required" rule)."""
-        strict = self._pyq_candidates(qtype, allow_concept_repeat=False)
+        """Three tiers, each only used once the previous one is exhausted:
+          1. strict: no concept repeat, no recent-paper reuse
+          2. concept repeat allowed, still avoid recent-paper reuse
+          3. last resort: recent-paper reuse allowed too (Phase 4.9, Task A -
+             "only reuse when the available pool is exhausted")
+        """
+        strict = self._pyq_candidates(qtype, allow_concept_repeat=False, allow_recent_reuse=False)
         strict_ids = {c["pyq_id"] for c in strict}
-        relaxed = [
-            c for c in self._pyq_candidates(qtype, allow_concept_repeat=True)
+
+        concept_relaxed = [
+            c for c in self._pyq_candidates(qtype, allow_concept_repeat=True, allow_recent_reuse=False)
             if c["pyq_id"] not in strict_ids
         ]
-        return strict + relaxed
+        seen_ids = strict_ids | {c["pyq_id"] for c in concept_relaxed}
+
+        last_resort = [
+            c for c in self._pyq_candidates(qtype, allow_concept_repeat=True, allow_recent_reuse=True)
+            if c["pyq_id"] not in seen_ids
+        ]
+        return strict + concept_relaxed + last_resort
 
     # ---- per-block selection ------------------------------------------------
 
@@ -501,3 +576,19 @@ class QuestionSelector:
             assert ai_count == ai_quota, message
 
         return rows
+
+    # ---- cross-paper diversity reporting (Phase 4.9, Task A/E) -------------
+
+    def diversity_report(self, rows):
+        """Stats on how many of this paper's PYQ rows were forced to reuse
+        a question already seen in one of the last RECENT_PAPERS_WINDOW
+        papers, for the generation report."""
+        pyq_rows = [r for r in rows if r["source"] == "PYQ"]
+        reused = [r for r in pyq_rows if r.get("pyq_id") in self.reused_recent_pyq_ids]
+        total_pyq = len(pyq_rows)
+        diversity_score = round(1 - (len(reused) / total_pyq), 4) if total_pyq else 1.0
+        return {
+            "question_diversity_score": diversity_score,
+            "repeated_questions": len(reused),
+            "recently_reused_question_ids": [r.get("pyq_id") for r in reused],
+        }

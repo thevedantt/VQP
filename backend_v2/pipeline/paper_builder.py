@@ -56,6 +56,7 @@ def build_paper(
             chapter_filters=chapter_filters,
             difficulty=difficulty,
             logger=logger,
+            paper_id=paper_id,
         )
 
         # ---- Select PYQ + AI questions, enforce diagram quotas (detection only) ----
@@ -86,6 +87,9 @@ def build_paper(
                 "diagram_family": row.get("diagram_family"),
                 "chapter": row.get("chapter"),
                 "concept": row.get("concept"),
+                # Phase 4.9, Task A: needed to extract previously-used
+                # question IDs from outputv2/papers/*.json across runs.
+                "pyq_id": row.get("pyq_id"),
             }
             question["quality_score"] = score_question(question)
             questions.append(question)
@@ -102,6 +106,9 @@ def build_paper(
         total_questions = len(questions)
         pyq_questions = sum(1 for q in questions if q["source"] == "PYQ")
         ai_questions = sum(1 for q in questions if q["source"] == "AI")
+
+        # Phase 4.9, Task A/E: cross-paper question diversity stats.
+        diversity = selector.diversity_report(rows)
 
         summary = {
             "total_questions": total_questions,
@@ -122,6 +129,9 @@ def build_paper(
             "actual_ai_ratio": (
                 round(ai_questions / total_questions, 4) if total_questions else 0.0
             ),
+            "question_diversity_score": diversity["question_diversity_score"],
+            "repeated_questions": diversity["repeated_questions"],
+            "recently_reused_question_ids": diversity["recently_reused_question_ids"],
         }
 
         paper_output = {
@@ -237,6 +247,15 @@ def _print_selection_report(summary):
     print("Average Quality Score")
     print()
     print(summary["average_quality_score"])
+    print()
+    print("---")
+    print()
+    print("Question Diversity Score")
+    print()
+    print(summary["question_diversity_score"])
+    print()
+    print(f"Repeated Questions: {summary['repeated_questions']}")
+    print(f"Recently Reused Questions: {summary['recently_reused_question_ids']}")
     print()
     print("=" * 60)
 

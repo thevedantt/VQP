@@ -1,0 +1,372 @@
+diagram:
+  title: "Forward Biased P-N Junction Diode"
+  version: "4.0"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LAYOUT SECTION
+# ──────────────────────────────────────────────────────────────────────────────
+# The LayoutResolver (a preprocessing step in DiagramCompiler) reads this block
+# and computes concrete pixel positions before the SceneBuilder runs.
+#
+# Only proportions and high-level parameters live here.
+# No absolute coordinates should appear in layer objects that use layout_circuit_id.
+# ══════════════════════════════════════════════════════════════════════════════
+layout:
+  canvas:
+    width: 900
+    height: 480
+
+  semiconductor:
+    margin_x: 85         # left/right margin from canvas edge to semiconductor block
+    margin_y: 75         # top margin above semiconductor block
+    block_height: 165    # height of the semiconductor slab
+    proportions:
+      p: 40              # % of block_width for P region
+      depletion: 14      # % for depletion region
+      n: 46              # % for N region
+
+  circuit:
+    baseline_y: 290      # y-coordinate of the bottom circuit rail (≈ 50 px below slab)
+    arm_x_margin: 42     # how far beyond P/N contacts the outer arms extend
+    switch_length: 55    # switch K width in px
+    battery_cells: 1     # number of electrochemical cells in battery E
+    battery_gap: 18      # px gap between switch exit and battery entry
+    resistor_length: 80  # resistor Rh width in px
+
+  caption_y: 462         # explicit caption y (alternative to auto from canvas_h)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENE HEADER  (LayoutResolver will override width/height from layout.canvas)
+# ══════════════════════════════════════════════════════════════════════════════
+scene:
+  title: "Forward Biased P-N Junction Diode"
+  width: 900
+  height: 480
+  background: "#FFFFFF"
+  # scene.regions is injected by LayoutResolver — no need to repeat here.
+  # The semiconductor, depletion, and n_region boxes are computed from proportions.
+
+layers:
+
+  # ── 1. Semiconductor body ─────────────────────────────────────────────────
+  # Uses scene.regions injected by LayoutResolver.
+  - name: semiconductor
+    z_index: 1
+    objects:
+      - type: rectangle
+        id: p_region_tint
+        region: p_region
+        style:
+          fill: "#FFF9F9"
+          stroke: "none"
+
+      - type: rectangle
+        id: depletion_fill
+        region: depletion
+        style:
+          fill: "#F2F2F2"
+          stroke: "none"
+
+      - type: rectangle
+        id: n_region_tint
+        region: n_region
+        style:
+          fill: "#F8F8FF"
+          stroke: "none"
+
+      # Full semiconductor border spanning all three regions (LayoutResolver injects 'semiconductor' region)
+      - type: rectangle
+        id: semiconductor_body
+        region: semiconductor
+        style:
+          fill: "none"
+          stroke: "#000000"
+          stroke_width: 1.5
+
+      # Depletion boundary lines (dashed)
+      - type: line
+        id: dep_left_boundary
+        region: depletion
+        boundary: left
+        style:
+          stroke: "#444444"
+          stroke_width: 1.0
+          dash_array: "5,4"
+
+      - type: line
+        id: dep_right_boundary
+        region: depletion
+        boundary: right
+        style:
+          stroke: "#444444"
+          stroke_width: 1.0
+          dash_array: "5,4"
+
+  # ── 2. Fixed space-charge ions in depletion region ─────────────────────────
+  - name: depletion_ions
+    z_index: 2
+    objects:
+      - type: ion_grid
+        id: neg_ions
+        region: depletion
+        depletion_side: left
+        rows: 3
+        cols: 1
+        spacing_y: 44
+        charge: negative
+        style:
+          fill: "#111111"
+          font_size: 16
+
+      - type: ion_grid
+        id: pos_ions
+        region: depletion
+        depletion_side: right
+        rows: 3
+        cols: 1
+        spacing_y: 44
+        charge: positive
+        style:
+          fill: "#111111"
+          font_size: 16
+
+  # ── 3. Charge carriers ───────────────────────────────────────────────────
+  # region + align:center + margin → SceneBuilder centres the grid automatically.
+  - name: carriers
+    z_index: 3
+    objects:
+      - type: carrier_grid
+        id: hole_grid
+        region: p_region
+        align: center
+        margin: 30
+        rows: 3
+        cols: 3
+        spacing_x: 58
+        spacing_y: 46
+        carrier_type: hole
+        carrier_radius: 8
+        show_arrows: true
+        arrow_direction: right
+        arrow_length: 18
+        style:
+          stroke: "#000000"
+          stroke_width: 1.4
+
+      - type: carrier_grid
+        id: electron_grid
+        region: n_region
+        align: center
+        margin: 30
+        rows: 3
+        cols: 3
+        spacing_x: 60
+        spacing_y: 46
+        carrier_type: electron
+        carrier_radius: 7
+        show_arrows: true
+        arrow_direction: left
+        arrow_length: 18
+        style:
+          stroke: "#000000"
+          stroke_width: 1.0
+
+  # ── 4. Electric field arrows ─────────────────────────────────────────────
+  # layout_circuit_id: label_e / label_ei → LayoutResolver computes start/end.
+  # E  (external applied field): points right (P→N direction, opposes Ei).
+  # Ei (internal built-in field): points left  (N→P direction, into depletion).
+  - name: field
+    z_index: 4
+    objects:
+      - type: field_arrow
+        id: e_external
+        layout_circuit_id: label_e
+        # start_x/start_y/end_x/end_y injected by LayoutResolver
+        head_size: 6
+        label: "E"
+        label_side: above
+        label_offset: 11
+        style:
+          stroke: "#222222"
+          stroke_width: 1.1
+          font_size: 10
+          fill: "#222222"
+
+      - type: field_arrow
+        id: e_internal
+        layout_circuit_id: label_ei
+        # start_x/start_y/end_x/end_y injected by LayoutResolver
+        head_size: 6
+        label: "Ei"
+        label_side: above
+        label_offset: 11
+        style:
+          stroke: "#222222"
+          stroke_width: 1.1
+          font_size: 10
+          fill: "#222222"
+
+  # ── 5. External circuit ───────────────────────────────────────────────────
+  # layout_circuit_id → LayoutResolver fills in x/y for components
+  #                       and waypoints for wire_path objects.
+  - name: circuit
+    z_index: 2
+    objects:
+      # Left arm: P contact → outer arm → start of switch
+      - type: wire_path
+        id: wire_left_arm
+        layout_circuit_id: wire_left_arm
+        style:
+          stroke: "#000000"
+          stroke_width: 1.4
+
+      # Switch K (closed — forward bias)
+      - type: switch_symbol
+        id: switch_k
+        layout_circuit_id: switch
+        length: 55
+        open: false
+        label: "K"
+        style:
+          stroke: "#000000"
+          stroke_width: 1.4
+
+      # Short wire from switch exit to battery
+      - type: wire_path
+        id: wire_to_battery
+        layout_circuit_id: wire_switch_to_battery
+        style:
+          stroke: "#000000"
+          stroke_width: 1.4
+
+      # Battery E (positive terminal on left = P side)
+      - type: battery_symbol
+        id: battery_e
+        layout_circuit_id: battery
+        orientation: horizontal
+        positive_on: left
+        cells: 1
+        style:
+          stroke: "#000000"
+          stroke_width: 1.4
+
+      # Long wire from battery to resistor
+      - type: wire_path
+        id: wire_to_resistor
+        layout_circuit_id: wire_battery_to_resistor
+        style:
+          stroke: "#000000"
+          stroke_width: 1.4
+
+      # Resistor Rh
+      - type: resistor_symbol
+        id: resistor_rh
+        layout_circuit_id: resistor
+        length: 80
+        label: "Rh"
+        style:
+          stroke: "#000000"
+          stroke_width: 1.4
+
+      # Right arm: outer arm → N contact
+      - type: wire_path
+        id: wire_right_arm
+        layout_circuit_id: wire_right_arm
+        style:
+          stroke: "#000000"
+          stroke_width: 1.4
+
+  # ── 6. Labels and annotations ────────────────────────────────────────────
+  - name: labels
+    z_index: 5
+    objects:
+      # Title — layout_circuit_id: title → LayoutResolver centres on canvas
+      - type: text
+        id: title
+        layout_circuit_id: title
+        x: 450
+        y: 30
+        content: "Forward Biased P-N Junction Diode"
+        style:
+          fill: "#000000"
+          stroke: "none"
+          font_size: 16
+          font_weight: "bold"
+          text_anchor: "middle"
+
+      # Region headings — explicit coords relative to scene.regions (static labels)
+      - type: text
+        id: label_p
+        region: p_region
+        label_anchor: top_center
+        y_offset: -13
+        content: "p"
+        style:
+          fill: "#000000"
+          stroke: "none"
+          font_size: 18
+          font_weight: "bold"
+          text_anchor: "middle"
+
+      - type: text
+        id: label_n
+        region: n_region
+        label_anchor: top_center
+        y_offset: -13
+        content: "n"
+        style:
+          fill: "#000000"
+          stroke: "none"
+          font_size: 18
+          font_weight: "bold"
+          text_anchor: "middle"
+
+      - type: text
+        id: label_dep
+        region: depletion
+        label_anchor: top_center
+        y_offset: -13
+        content: "Depl."
+        style:
+          fill: "#444444"
+          stroke: "none"
+          font_size: 9
+          text_anchor: "middle"
+
+      # Carrier type labels below semiconductor
+      - type: text
+        id: label_holes
+        region: p_region
+        label_anchor: bottom_center
+        y_offset: 14
+        content: "Holes"
+        style:
+          fill: "#000000"
+          stroke: "none"
+          font_size: 11
+          text_anchor: "middle"
+
+      - type: text
+        id: label_electrons
+        region: n_region
+        label_anchor: bottom_center
+        y_offset: 14
+        content: "Electrons"
+        style:
+          fill: "#000000"
+          stroke: "none"
+          font_size: 11
+          text_anchor: "middle"
+
+      # Caption — layout_circuit_id: caption → LayoutResolver places at canvas bottom
+      - type: text
+        id: caption
+        layout_circuit_id: caption
+        x: 450
+        y: 462
+        content: "Fig. 14.15  Forward biasing of a p-n junction."
+        style:
+          fill: "#333333"
+          stroke: "none"
+          font_size: 10
+          text_anchor: "middle"

@@ -60,6 +60,12 @@ from diagram_generation.diagram_scanner import scan_paper
 # ---------------------------------------------------------------------------
 
 SIMILARITY_THRESHOLD = 0.85
+
+# Phase 4.9, Task C: below this floor, a retrieved "best match" isn't a real
+# match (observed retrievals around 0.20-0.30 against unrelated examples) -
+# never route generation through it, always fall back to SCHEMA_BASED.
+MIN_SIMILARITY_FOR_RETRIEVAL = 0.50
+
 DIAGRAM_RUNS_DIR = BACKEND_V2 / "outputv2" / "diagram_runs"
 
 # ---------------------------------------------------------------------------
@@ -192,6 +198,8 @@ def generate_diagram_for_question(question, paper_id=None, question_id=None, log
             "reason": str | None,
             "similarity_score": float | None,
             "generation_mode": "EXAMPLE_BASED" | "SCHEMA_BASED" | None,
+            "retrieved_example_rank": int | None,
+            "top_5_similarities": [float, ...] | None,
             "confidence": int | None,
             "status": "SUCCESS" | "SKIPPED" | "FAILED",
             "svg_path": str | None,
@@ -208,6 +216,8 @@ def generate_diagram_for_question(question, paper_id=None, question_id=None, log
         "reason": None,
         "similarity_score": None,
         "generation_mode": None,
+        "retrieved_example_rank": None,
+        "top_5_similarities": None,
         "confidence": None,
         "status": "FAILED",
         "svg_path": None,
@@ -295,9 +305,13 @@ def generate_diagram_for_question(question, paper_id=None, question_id=None, log
             best_match.get("question") or best_match.get("question_id"),
         )
 
-        # ---- Step 4: Hybrid Generation (Task 1) -------------------------
+        # ---- Step 4: Hybrid Generation (Task 1; gated by Task C) --------
         t_gen_start = time.perf_counter()
-        if similarity_score >= SIMILARITY_THRESHOLD:
+        if similarity_score < MIN_SIMILARITY_FOR_RETRIEVAL:
+            mode = "SCHEMA_BASED"
+            gen_result = schema_generator.generate_blueprint(question, family, schema)
+            raw_blueprint = _normalize_blueprint(gen_result.get("blueprint"))
+        elif similarity_score >= SIMILARITY_THRESHOLD:
             mode = "EXAMPLE_BASED"
             modifier_result = modifier.modify_blueprint(
                 question, family, schema, example_blueprint
@@ -370,22 +384,31 @@ def generate_diagram_for_question(question, paper_id=None, question_id=None, log
 
         logger.log_compiler(family, str(svg_path))
 
-        # ---- Step 7: Traceability (Tasks 9, 10) -------------------------
+        # ---- Step 7: Traceability (Tasks 9, 10; Phase 4.9 Task B/E) -----
+        result["retrieved_example_rank"] = retrieval.get("rank")
+        result["top_5_similarities"] = retrieval.get("top_5_similarities")
+
         metadata = {
             "paper_id": paper_id,
             "question_id": question_id,
             "family": family,
             "generation_mode": mode,
             "similarity_score": similarity_score,
+            "retrieved_example_rank": retrieval.get("rank"),
+            "top_5_similarities": retrieval.get("top_5_similarities"),
             "confidence": confidence,
             "reason": result["reason"],
             "future_revision_ready": True,
         }
+        # Phase 4.9, Task C: only persist the retrieved example as a real
+        # match when it was actually used (EXAMPLE_BASED) - below the
+        # similarity floor it's noise, not a usable reference.
+        retrieval_for_artifacts = retrieval if mode == "EXAMPLE_BASED" else None
         _save_run_artifacts(
             paper_id,
             question_id,
             question,
-            retrieval,
+            retrieval_for_artifacts,
             raw_blueprint,
             evaluation,
             str(svg_path),
@@ -416,6 +439,8 @@ def generate_diagram_for_question(question, paper_id=None, question_id=None, log
             "family": result.get("family"),
             "generation_mode": result.get("generation_mode"),
             "similarity_score": result.get("similarity_score"),
+            "retrieved_example_rank": result.get("retrieved_example_rank"),
+            "top_5_similarities": result.get("top_5_similarities"),
             "confidence": result.get("confidence"),
             "reason": result.get("reason"),
             "error": str(e),
@@ -503,6 +528,8 @@ def _print_report(paper_id, results, generated, failed):
         print(f"Family: {r['family']}")
         print(f"Mode: {r['generation_mode']}")
         print(f"Similarity: {r['similarity_score']}")
+        print(f"Retrieved Example Rank: {r.get('retrieved_example_rank')}")
+        print(f"Top 5 Similarities: {r.get('top_5_similarities')}")
         print(f"Confidence: {r['confidence']}")
         print(f"Reason: {r['reason']}")
         print(f"Status: {r['status']}")

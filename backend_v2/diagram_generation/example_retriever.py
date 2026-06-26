@@ -17,6 +17,7 @@ entries per family - so a heavier dependency isn't warranted):
 """
 
 import difflib
+import random
 import re
 import sys
 from pathlib import Path
@@ -37,6 +38,12 @@ _STOPWORDS = {
 }
 
 _WORD_RE = re.compile(r"[a-z0-9']+")
+
+# Phase 4.9, Task B: retrieve a pool of top candidates instead of always the
+# single best match, so repeated runs over similar questions don't all land
+# on the same example (e.g. every lens question -> the same Convex Lens entry).
+TOP_K = 5
+CANDIDATE_SPREAD = 0.10  # absolute similarity gap from the top score
 
 
 def _tokenize(text):
@@ -119,10 +126,23 @@ def score_example(question, example, family):
 def retrieve(question, family):
     """
     Returns:
-        {"best_match": {...example...}, "similarity_score": 0.94}
+        {
+            "best_match": {...example...},       # randomly chosen from the candidate pool
+            "similarity_score": 0.79,             # chosen example's own score
+            "rank": 2,                            # 1-based rank of the chosen example
+            "top_5_similarities": [0.81, 0.79, 0.78, 0.76, 0.74],
+            "candidate_pool_size": 3,
+        }
 
     Raises ValueError if the family has no examples (SchemaRouter already
     guarantees examples.json exists, but it could be an empty list).
+
+    Phase 4.9, Task B: instead of always taking the single top-scoring
+    example (which made every question in a family converge on the same
+    diagram, e.g. always Convex Lens for ray), this takes the top TOP_K
+    scored examples and picks randomly among those within CANDIDATE_SPREAD
+    of the top score - close-enough matches are treated as equally valid,
+    so repeated generations diversify instead of collapsing onto one example.
     """
     assets = SchemaRouter().get_family_assets(family)
     examples = assets["examples"]
@@ -135,11 +155,19 @@ def retrieve(question, family):
     ]
     scored.sort(key=lambda pair: pair[0], reverse=True)
 
-    best_score, best_example = scored[0]
+    top_5 = scored[:TOP_K]
+    top_score = top_5[0][0]
+    candidate_pool = [pair for pair in top_5 if (top_score - pair[0]) < CANDIDATE_SPREAD]
+
+    chosen_score, chosen_example = random.choice(candidate_pool)
+    rank = next(i for i, pair in enumerate(top_5, start=1) if pair[1] is chosen_example)
 
     return {
-        "best_match": best_example,
-        "similarity_score": round(best_score, 2),
+        "best_match": chosen_example,
+        "similarity_score": round(chosen_score, 2),
+        "rank": rank,
+        "top_5_similarities": [round(score, 2) for score, _ in top_5],
+        "candidate_pool_size": len(candidate_pool),
     }
 
 
